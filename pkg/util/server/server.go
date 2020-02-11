@@ -25,8 +25,6 @@ type Config struct {
 func New(debug bool) *echo.Echo {
 
 	e := echo.New()
-	e.HideBanner = !debug
-	e.HidePort = !debug
 
 	e.Use(
 		middleware.Logger(),  // default echo logger
@@ -53,7 +51,8 @@ func Start(e *echo.Echo, cfg *Config, log *log.Log) {
 	}
 	s.SetKeepAlivesEnabled(false)
 
-	e.Debug = cfg.Debug
+	e.Debug = false
+	e.HideBanner = !cfg.Debug
 	e.HidePort = !cfg.Debug
 
 	// start server

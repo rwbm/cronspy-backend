@@ -1,3 +1,3 @@
 #!/bin/sh
-cd cmd/api
+cd cmd/backend
 go build -ldflags "-s -w"

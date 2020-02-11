@@ -17,19 +17,18 @@ type Configuration struct {
 		Debug        bool   `yaml:"debug"`
 	} `yaml:"server"`
 	Database struct {
-		Address             string `yaml:"address"`
-		DefaultDB           string `yaml:"default_db"`
-		Username            string `yaml:"username"`
-		Password            string `yaml:"password"`
-		MaxOpenConnections  int    `yaml:"max_open_connections"`
-		MaxIdleConnecrtions int    `yaml:"max_idle_connections"`
-		MaxLifeTime         int    `yaml:"max_lifetime"`
+		Address            string `yaml:"address"`
+		DefaultDB          string `yaml:"default_db"`
+		Username           string `yaml:"username"`
+		Password           string `yaml:"password"`
+		MaxOpenConnections int    `yaml:"max_open_connections"`
+		MaxIdleConnections int    `yaml:"max_idle_connections"`
+		MaxLifeTime        int    `yaml:"max_lifetime"`
 	} `yaml:"database"`
 }
 
 // Load reads application settings in the indicated file
 func Load(path string) (cfg *Configuration, err error) {
-
 	if files.Exists(path) {
 		cfg, err = loadSettingsFromFile(path)
 	} else {

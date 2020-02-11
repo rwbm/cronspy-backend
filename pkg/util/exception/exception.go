@@ -1,36 +1,29 @@
 package exception
 
-import (
-	"net/http"
+import "errors"
 
-	"github.com/labstack/echo/v4"
+// Internal error defitions
+var (
+	ErrRecordNotFound        = errors.New("record not found")
+	ErrInvalidEmailAddress   = errors.New("invalid_email")
+	ErrInvalidPasswordFormat = errors.New("invalid_password")
 )
 
 // Standar error codes
 const (
 	CodeInternalServerError = "internal_server_error"
 	CodeUnauthorized        = "unauthorized"
-)
-
-var (
-	// ErrInternal is used for generic internal server errors
-	ErrInternal = echo.NewHTTPError(http.StatusInternalServerError, "something went wrong")
-
-	// ErrNoResults is used to indicate no results from a DB query
-	ErrNoResults = echo.NewHTTPError(http.StatusNotFound, "no results found")
-
-	// ErrBadRequest (400) is returned for bad request (validation)
-	ErrBadRequest = echo.NewHTTPError(http.StatusBadRequest, "invalid or missing parameters")
-
-	// ErrUnauthorized (401) is returned when user is not authorized
-	ErrUnauthorized = echo.ErrUnauthorized
+	CodeUserExists          = "user_exists"
 )
 
 var (
 	// map with text messages associated
 	messages = map[string]string{
-		CodeInternalServerError: "internal server error ocurred",
-		CodeUnauthorized:        "unauthorized request",
+		CodeInternalServerError:          "internal server error ocurred",
+		CodeUnauthorized:                 "unauthorized request",
+		CodeUserExists:                   "user already exists",
+		ErrInvalidEmailAddress.Error():   "invalid email address",
+		ErrInvalidPasswordFormat.Error(): "invalid password format",
 	}
 )
 
