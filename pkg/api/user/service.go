@@ -13,6 +13,7 @@ import (
 type Service interface {
 	RegisterUser(ec echo.Context, user *model.User) (err error)
 	Login(username, password string) (user model.User, err error)
+	GetJWTExpiration() int
 }
 
 // DB holds the functions for database access
@@ -23,19 +24,21 @@ type DB interface {
 
 // User defines the module for user related operations
 type User struct {
-	database DB
-	logger   *log.Log
+	database        DB
+	logger          *log.Log
+	tokenExpiration int
 }
 
 // creates new reseller service
-func new(database DB, l *log.Log) *User {
+func new(database DB, l *log.Log, tokenExpiration int) *User {
 	return &User{
-		database: database,
-		logger:   l,
+		database:        database,
+		logger:          l,
+		tokenExpiration: tokenExpiration,
 	}
 }
 
 // Initialize initializes tax application service
-func Initialize(ds *gorm.DB, l *log.Log) *User {
-	return new(db.NewUserDB(ds), l)
+func Initialize(ds *gorm.DB, l *log.Log, tokenExpiration int) *User {
+	return new(db.NewUserDB(ds), l, tokenExpiration)
 }

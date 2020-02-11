@@ -9,6 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// GetJWTExpiration returns the configured token expiration
+func (u *User) GetJWTExpiration() int {
+	return u.tokenExpiration
+}
+
 // RegisterUser holds the logic to create a new user in the database
 func (u *User) RegisterUser(ec echo.Context, user *model.User) (err error) {
 
