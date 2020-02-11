@@ -1,0 +1,35 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.13.6-stretch
+
+    working_directory: /go/src/cronspy-backend
+    steps:
+      - checkout
+
+      # specify any bash command here prefixed with `run: `
+      - run:
+          name: "Fetch dependencies"
+          command: >
+            go mod download
+      - run:
+          name: "Run golint"
+          command: >
+            if [ "${LATEST}" = true ] && [ -z "${SKIP_GOLINT}" ]; then
+              go get -u golang.org/x/lint/golint
+              golint ./...
+            fi
+      - run: 
+          name: "Run tests"
+          command: >
+            go test -v ./...
+      
+
+    cache:
+      directories:
+        - $GOPATH/pkg/mod  
