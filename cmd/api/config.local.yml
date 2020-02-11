@@ -1,0 +1,21 @@
+server:
+  port: :8081
+  read_timeout: 20
+  write_timeout: 10
+  debug: yes
+
+auth_service:
+  url: http://localhost:8288
+  timeout: 5
+
+log:
+  retention_days: 180
+
+database:
+  address: 127.0.0.1:3306
+  default_db: cronspy
+  username: root
+  password: robert
+  max_open_connections: 5
+  max_idle_connections: 1
+  max_lifetime: 300

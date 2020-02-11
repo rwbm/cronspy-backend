@@ -1,0 +1,5 @@
+.DS_Store
+coverage.txt
+_test
+*.iml
+*.out
