@@ -9,6 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// GetJWTExpiration returns the configured token expiration
+func (u *User) GetJWTExpiration() int {
+	return u.tokenExpiration
+}
+
 // RegisterUser holds the logic to create a new user in the database
 func (u *User) RegisterUser(ec echo.Context, user *model.User) (err error) {
 
@@ -39,6 +44,32 @@ func (u *User) RegisterUser(ec echo.Context, user *model.User) (err error) {
 
 		// clean passwords for security
 		user.CleanPassword()
+	}
+
+	return
+}
+
+// Login handles a user login request, by loading the user from the DB
+// and validating the password hash
+func (u *User) Login(username, password string) (user model.User, err error) {
+
+	// get user
+	user, err = u.database.GetUserByEmail(username)
+	if err == nil {
+
+		// check password
+		if !user.ValidatePassword(password) {
+			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+		} else {
+			user.CleanPassword()
+		}
+
+	} else {
+		if err == exception.ErrRecordNotFound {
+			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+		} else {
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
+		}
 	}
 
 	return

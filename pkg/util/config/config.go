@@ -11,10 +11,11 @@ import (
 // Configuration is the structure used to hold configuration from config.yml
 type Configuration struct {
 	Server struct {
-		Port         string `yaml:"port"`
-		ReadTimeout  int    `yaml:"read_timeout"`
-		WriteTimeout int    `yaml:"write_timeout"`
-		Debug        bool   `yaml:"debug"`
+		Port            string `yaml:"port"`
+		ReadTimeout     int    `yaml:"read_timeout"`
+		WriteTimeout    int    `yaml:"write_timeout"`
+		Debug           bool   `yaml:"debug"`
+		TokenExpiration int    `yaml:"token_expiration"`
 	} `yaml:"server"`
 	Database struct {
 		Address            string `yaml:"address"`

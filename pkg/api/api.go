@@ -34,7 +34,7 @@ func Start(cfg *config.Configuration) (err error) {
 
 	// +++++++++++ SERVICES ++++++++++++
 	//
-	transport.NewHTTP(user.Initialize(ds, logger), e)
+	transport.NewHTTP(user.Initialize(ds, logger, cfg.Server.TokenExpiration), e)
 	//
 	// +++++++++++++++++++++++++++++++++
 
