@@ -12,8 +12,10 @@ import (
 // Service holds the functions delcared in the service interface
 type Service interface {
 	RegisterUser(ec echo.Context, user *model.User) (err error)
+	Login(username, password string) (user model.User, err error)
 }
 
+// DB holds the functions for database access
 type DB interface {
 	RegisterUser(user *model.User) (id int, err error)
 	GetUserByEmail(email string) (user model.User, err error)

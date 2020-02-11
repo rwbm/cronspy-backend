@@ -6,7 +6,7 @@ import "errors"
 var (
 	ErrRecordNotFound        = errors.New("record not found")
 	ErrInvalidEmailAddress   = errors.New("invalid_email")
-	ErrInvalidPasswordFormat = errors.New("invalid_password")
+	ErrInvalidPasswordFormat = errors.New("invalid_password_format")
 )
 
 // Standar error codes
@@ -14,6 +14,7 @@ const (
 	CodeInternalServerError = "internal_server_error"
 	CodeUnauthorized        = "unauthorized"
 	CodeUserExists          = "user_exists"
+	CodeInvalidPassword     = "invalid_password"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 		CodeUserExists:                   "user already exists",
 		ErrInvalidEmailAddress.Error():   "invalid email address",
 		ErrInvalidPasswordFormat.Error(): "invalid password format",
+		CodeInvalidPassword:              "invalid password",
 	}
 )
 

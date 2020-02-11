@@ -21,8 +21,12 @@ func NewHTTP(svc user.Service, e *echo.Echo) {
 
 	user := e.Group("/user")
 	user.POST("/create", h.userRegisterHandler)
+	user.POST("/login", h.userLoginHandler)
 }
 
+//
+// USER REGISTRATION
+//
 func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	user := new(model.User)
 	if err := c.Bind(user); err != nil {
@@ -30,7 +34,7 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	}
 
 	// validate input
-	if err := h.validateUserRegistrationInput(user); err != nil {
+	if err := h.validateUserRegistrationInput(user.Email, user.Password); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(err.Error(), ""))
 	}
 
@@ -42,15 +46,48 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	return c.JSON(http.StatusCreated, user)
 }
 
-func (h *HTTP) validateUserRegistrationInput(user *model.User) (err error) {
+//
+// LOGIN
+//
+func (h *HTTP) userLoginHandler(c echo.Context) error {
+
+	type credentials struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	cred := new(credentials)
+	if err := c.Bind(cred); err != nil {
+		return err
+	}
+
+	// if email or password does not meet basic criteria, return generic error
+	if err := h.validateUserRegistrationInput(cred.Username, cred.Password); err != nil {
+		err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+	}
+
+	// run login
+	user, err := h.svc.Login(cred.Username, cred.Password)
+	if err != nil {
+		return err
+	}
+
+	//
+	// TODO: ademas debemos retornar el token JWT
+	//
+
+	return c.JSON(http.StatusOK, user)
+}
+
+func (h *HTTP) validateUserRegistrationInput(email, password string) (err error) {
 
 	// check email format
-	if !common.IsEmailAddress(user.Email) {
+	if !common.IsEmailAddress(email) {
 		return exception.ErrInvalidEmailAddress
 	}
 
-	// check
-	if len(user.Password) < 8 {
+	// check password rules
+	if len(password) < 8 {
 		return exception.ErrInvalidPasswordFormat
 	}
 
