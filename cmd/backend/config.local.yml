@@ -2,7 +2,7 @@ server:
   port: :8088
   read_timeout: 10
   write_timeout: 5
-  token_expiration: 3
+  token_expiration: 24
   debug: no
 
 database:

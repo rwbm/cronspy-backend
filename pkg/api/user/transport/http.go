@@ -9,12 +9,19 @@ import (
 
 	"github.com/astropay/go-tools/common"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/labstack/echo/middleware"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
 	jwtSigningKey = "10fa4f27-6a69-45c1-9a88-dfcecdbdc3d8"
+)
+
+var (
+	// IsUserLoggedIn is a middleware to restrict URL to logged user
+	IsUserLoggedIn = middleware.JWTWithConfig(getJWTConfig())
+	// used jwt signing method
+	jwtSigningMethod = jwt.SigningMethodHS512
 )
 
 // HTTP represents auth http service
@@ -29,6 +36,7 @@ func NewHTTP(svc user.Service, e *echo.Echo) {
 	user := e.Group("/user")
 	user.POST("/register", h.userRegisterHandler)
 	user.POST("/login", h.userLoginHandler)
+	user.PUT("/changePassword", h.userChangePasswordHandler, IsUserLoggedIn)
 }
 
 //
@@ -41,7 +49,10 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	}
 
 	// validate input
-	if err := h.validateUserRegistrationInput(user.Email, user.Password); err != nil {
+	if err := h.validateEmailInput(user.Email); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(err.Error(), ""))
+	}
+	if err := h.validatePasswordInput(user.Password); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(err.Error(), ""))
 	}
 
@@ -69,8 +80,11 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 	}
 
 	// if email or password does not meet basic criteria, return generic error
-	if err := h.validateUserRegistrationInput(cred.Username, cred.Password); err != nil {
-		err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+	if err := h.validateEmailInput(cred.Username); err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+	}
+	if err := h.validatePasswordInput(cred.Password); err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 	}
 
 	// run login
@@ -93,13 +107,54 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (h *HTTP) validateUserRegistrationInput(email, password string) (err error) {
+//
+// CHANGE PASSWORD
+//
+func (h *HTTP) userChangePasswordHandler(c echo.Context) error {
 
+	type credentials struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	cred := new(credentials)
+	if err := c.Bind(cred); err != nil {
+		return err
+	}
+
+	// if email or password does not meet basic criteria, return generic error
+	if err := h.validatePasswordInput(cred.NewPassword); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.ErrInvalidPasswordFormat.Error(), ""))
+	}
+
+	// get user id
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	idUser, ok := claims["id"].(float64)
+
+	if !ok {
+		return echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
+	}
+
+	// run change password
+	err := h.svc.ChangePassword(int(idUser), cred.OldPassword, cred.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *HTTP) validateEmailInput(email string) (err error) {
 	// check email format
 	if !common.IsEmailAddress(email) {
 		return exception.ErrInvalidEmailAddress
 	}
 
+	return
+}
+
+func (h *HTTP) validatePasswordInput(password string) (err error) {
 	// check password rules
 	if len(password) < 8 {
 		return exception.ErrInvalidPasswordFormat
@@ -110,7 +165,7 @@ func (h *HTTP) validateUserRegistrationInput(email, password string) (err error)
 
 // build JWT with the indicated parameters
 func (h *HTTP) buildJWTToken(userID int, email, name, accountType string, tokenExpiration int) *jwt.Token {
-	token := jwt.New(jwt.SigningMethodHS512)
+	token := jwt.New(jwtSigningMethod)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = userID
 	claims["email"] = email
@@ -121,7 +176,8 @@ func (h *HTTP) buildJWTToken(userID int, email, name, accountType string, tokenE
 	return token
 }
 
-func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
+func getJWTConfig() (jwtCfg middleware.JWTConfig) {
+	jwtCfg.SigningMethod = jwtSigningMethod.Name
 	jwtCfg.SigningKey = []byte(jwtSigningKey)
 	return
 }
