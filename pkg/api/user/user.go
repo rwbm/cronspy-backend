@@ -74,3 +74,38 @@ func (u *User) Login(username, password string) (user model.User, err error) {
 
 	return
 }
+
+// ChangePassword handles logic for password changes
+func (u *User) ChangePassword(idUser int, oldPassword, newPassword string) (err error) {
+
+	// get user
+	user, err := u.database.GetUserByID(idUser)
+	if err == nil {
+
+		// check password
+		if !user.ValidatePassword(oldPassword) {
+
+			println("no paso validacion password")
+
+			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+		} else {
+
+			println("paso validacion del password; actualizando...")
+
+			// update password
+			if errUpdate := u.database.UpdateUserPassword(user.ID, newPassword); errUpdate != nil {
+				u.logger.Error("error updating user password", errUpdate, map[string]interface{}{"id_user": idUser})
+				err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errUpdate.Error()))
+			}
+		}
+
+	} else {
+		if err == exception.ErrRecordNotFound {
+			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
+		} else {
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
+		}
+	}
+
+	return
+}

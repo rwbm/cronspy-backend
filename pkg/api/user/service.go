@@ -11,15 +11,18 @@ import (
 
 // Service holds the functions delcared in the service interface
 type Service interface {
+	GetJWTExpiration() int
 	RegisterUser(ec echo.Context, user *model.User) (err error)
 	Login(username, password string) (user model.User, err error)
-	GetJWTExpiration() int
+	ChangePassword(idUser int, oldPassword, newPassword string) (err error)
 }
 
 // DB holds the functions for database access
 type DB interface {
 	RegisterUser(user *model.User) (id int, err error)
 	GetUserByEmail(email string) (user model.User, err error)
+	GetUserByID(idUser int) (user model.User, err error)
+	UpdateUserPassword(idUser int, newPassword string) (err error)
 }
 
 // User defines the module for user related operations
