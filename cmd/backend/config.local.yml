@@ -6,6 +6,7 @@ server:
   debug: no
 
 database:
+  driver: mysql
   address: 127.0.0.1:3306
   default_db: cronspy
   username: root

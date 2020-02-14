@@ -18,6 +18,7 @@ type Configuration struct {
 		TokenExpiration int    `yaml:"token_expiration"`
 	} `yaml:"server"`
 	Database struct {
+		Driver             string `yaml:"driver"`
 		Address            string `yaml:"address"`
 		DefaultDB          string `yaml:"default_db"`
 		Username           string `yaml:"username"`

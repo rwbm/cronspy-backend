@@ -34,8 +34,13 @@ func NewHTTP(svc user.Service, e *echo.Echo) {
 	h := HTTP{svc: svc}
 
 	user := e.Group("/user")
+
+	// login not required
 	user.POST("/register", h.userRegisterHandler)
 	user.POST("/login", h.userLoginHandler)
+	user.POST("/passwordReset", h.userPasswordResetHandler)
+
+	// login required
 	user.PUT("/changePassword", h.userChangePasswordHandler, IsUserLoggedIn)
 }
 
@@ -105,6 +110,29 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 	resp["access_token"] = t
 
 	return c.JSON(http.StatusOK, resp)
+}
+
+//
+// PASSWORD RESET
+//
+func (h *HTTP) userPasswordResetHandler(c echo.Context) error {
+
+	type requestResponse struct {
+		Email string `json:"email,omitempty"`
+		ID    string `json:"id,omitempty"`
+	}
+
+	payload := new(requestResponse)
+	if err := c.Bind(payload); err != nil {
+		return err
+	}
+
+	resetID, err := h.svc.ResetPassword(payload.Email)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, requestResponse{ID: resetID})
 }
 
 //

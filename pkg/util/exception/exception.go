@@ -11,10 +11,13 @@ var (
 
 // Standar error codes
 const (
-	CodeInternalServerError = "internal_server_error"
-	CodeUnauthorized        = "unauthorized"
-	CodeUserExists          = "user_exists"
-	CodeInvalidPassword     = "invalid_password"
+	CodeInternalServerError     = "internal_server_error"
+	CodeUnauthorized            = "unauthorized"
+	CodeUserExists              = "user_exists"
+	CodeInvalidPassword         = "invalid_password"
+	CodeUnknownUser             = "unknown_user"
+	CodeMaxPasswordResetReached = "max_password_reset_reached"
+	CodeNeedToWaitBeforeResend  = "wait_before_resend"
 )
 
 var (
@@ -26,6 +29,9 @@ var (
 		ErrInvalidEmailAddress.Error():   "invalid email address",
 		ErrInvalidPasswordFormat.Error(): "invalid password format",
 		CodeInvalidPassword:              "invalid password",
+		CodeUnknownUser:                  "unknown user",
+		CodeMaxPasswordResetReached:      "max number of password resets has been reached",
+		CodeNeedToWaitBeforeResend:       "need to wait some time before resending the email",
 	}
 )
 
