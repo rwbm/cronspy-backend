@@ -84,14 +84,8 @@ func (u *User) ChangePassword(idUser int, oldPassword, newPassword string) (err 
 
 		// check password
 		if !user.ValidatePassword(oldPassword) {
-
-			println("no paso validacion password")
-
 			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 		} else {
-
-			println("paso validacion del password; actualizando...")
-
 			// update password
 			if errUpdate := u.database.UpdateUserPassword(user.ID, newPassword); errUpdate != nil {
 				u.logger.Error("error updating user password", errUpdate, map[string]interface{}{"id_user": idUser})
@@ -159,8 +153,37 @@ func (u *User) ResetPassword(email string) (resetID string, err error) {
 	return
 }
 
-// looks for an existing password reset for the user; if it doesn't exist,
-// a new record is crated
+// ValidateResetPassword is invoked when the user clicks the reset password URL
+// provided by email; if not found, just return 404
+func (u *User) ValidateResetPassword(resetID string) (err error) {
+
+	// find password reset token
+	reset, errGetReset := u.database.GetPasswordResetByID(resetID)
+	if errGetReset != nil {
+		if errGetReset == exception.ErrRecordNotFound {
+			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
+		} else {
+			u.logger.Error("error loading password reset from database", errGetReset, map[string]interface{}{"id_reset": resetID})
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errGetReset.Error()))
+		}
+		return
+	}
+
+	// check if EXPIRED
+	if time.Since(reset.DateUpdated).Hours() > 24 {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodePasswordResetTokenExpired, ""))
+	}
+
+	// mark password reset as vaidated
+	if errUpdate := u.database.ValidatePasswordReset(resetID); errUpdate != nil {
+		u.logger.Error("error updating password reset", errUpdate, map[string]interface{}{"id_reset": resetID})
+		err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errUpdate.Error()))
+	}
+
+	return
+}
+
+// looks for an existing password reset for the user; if it doesn't exist a new record is crated
 func (u *User) getOrCreatePasswordReset(idUser int) (r model.PasswordReset, ok bool, err error) {
 
 	r, err = u.database.GetPasswordResetByUser(idUser)
@@ -172,6 +195,7 @@ func (u *User) getOrCreatePasswordReset(idUser int) (r model.PasswordReset, ok b
 			r.DateUpdated = time.Now()
 			r.LinkSentCount = 1
 			r.Validated = false
+			r.Used = false
 
 			err = u.database.CreatePasswordReset(&r)
 			ok = true

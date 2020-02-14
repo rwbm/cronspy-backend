@@ -34,7 +34,17 @@ func (c *UserDB) DeletePasswordReset(id string) error {
 	return c.ds.Where("id_password_reset = ?", id).Delete(model.PasswordReset{}).Error
 }
 
-// UpdatePasswordResetCount updated the sent count
+// UpdatePasswordResetCount updates the sent count
 func (c *UserDB) UpdatePasswordResetCount(id string, countValue int) (err error) {
 	return c.ds.Model(model.PasswordReset{}).Where("id_password_reset = ?", id).Update("link_sent_count", countValue).Error
+}
+
+// ValidatePasswordReset updates the validated field with true
+func (c *UserDB) ValidatePasswordReset(id string) (err error) {
+	return c.ds.Model(model.PasswordReset{}).Where("id_password_reset = ?", id).Update("validated", true).Error
+}
+
+// MarkPasswordResetAsUsed updates the used field with true
+func (c *UserDB) MarkPasswordResetAsUsed(id string) (err error) {
+	return c.ds.Model(model.PasswordReset{}).Where("id_password_reset = ?", id).Update("used", true).Error
 }

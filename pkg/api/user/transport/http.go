@@ -29,23 +29,24 @@ type HTTP struct {
 	svc user.Service
 }
 
-// NewHTTP creates new http service
+// NewHTTP creates new http service to handle request to /user
 func NewHTTP(svc user.Service, e *echo.Echo) {
 	h := HTTP{svc: svc}
 
 	user := e.Group("/user")
 
-	// login not required
+	// login NOT required
 	user.POST("/register", h.userRegisterHandler)
 	user.POST("/login", h.userLoginHandler)
-	user.POST("/passwordReset", h.userPasswordResetHandler)
+	user.POST("/passwordReset", h.userPasswordResetRequestHandler)
+	user.GET("/passwordReset/validate", h.userPasswordResetValidateHandler)
 
 	// login required
 	user.PUT("/changePassword", h.userChangePasswordHandler, IsUserLoggedIn)
 }
 
 //
-// USER REGISTRATION
+// --- USER REGISTRATION ---
 //
 func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	user := new(model.User)
@@ -70,7 +71,7 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 }
 
 //
-// LOGIN
+// --- LOGIN ---
 //
 func (h *HTTP) userLoginHandler(c echo.Context) error {
 
@@ -113,9 +114,9 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 }
 
 //
-// PASSWORD RESET
+// --- PASSWORD RESET REQUEST ---
 //
-func (h *HTTP) userPasswordResetHandler(c echo.Context) error {
+func (h *HTTP) userPasswordResetRequestHandler(c echo.Context) error {
 
 	type requestResponse struct {
 		Email string `json:"email,omitempty"`
@@ -136,7 +137,25 @@ func (h *HTTP) userPasswordResetHandler(c echo.Context) error {
 }
 
 //
-// CHANGE PASSWORD
+// --- PASSWORD RESET VALIDATION ---
+//
+func (h *HTTP) userPasswordResetValidateHandler(c echo.Context) error {
+
+	token := c.QueryParam("token")
+	if token == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err := h.svc.ValidateResetPassword(token)
+	if err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+//
+// --- CHANGE PASSWORD ---
 //
 func (h *HTTP) userChangePasswordHandler(c echo.Context) error {
 

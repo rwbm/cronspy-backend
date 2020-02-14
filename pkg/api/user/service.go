@@ -16,6 +16,7 @@ type Service interface {
 	Login(username, password string) (user model.User, err error)
 	ChangePassword(idUser int, oldPassword, newPassword string) (err error)
 	ResetPassword(email string) (resetID string, err error)
+	ValidateResetPassword(resetID string) (err error)
 }
 
 // DB holds the functions for database access
@@ -32,6 +33,8 @@ type DB interface {
 	GetPasswordResetByUser(idUser int) (reset model.PasswordReset, err error)
 	DeletePasswordReset(id string) error
 	UpdatePasswordResetCount(id string, countValue int) (err error)
+	ValidatePasswordReset(id string) (err error)
+	MarkPasswordResetAsUsed(id string) (err error)
 }
 
 // User defines the module for user related operations

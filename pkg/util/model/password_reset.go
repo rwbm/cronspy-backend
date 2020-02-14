@@ -15,6 +15,7 @@ type PasswordReset struct {
 	IDUser        int       `gorm:"NOT NULL"`
 	LinkSentCount int       `gorm:"NOT NULL"`
 	Validated     bool      `gorm:"DEFAULT(0);NOT NULL"`
+	Used          bool      `gorm:"DEFAULT(0);NOT NULL"`
 }
 
 // BeforeCreate sets the unique ID before record is saved in the database
