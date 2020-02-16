@@ -47,6 +47,11 @@ func (c *UserDB) GetUserByID(idUser int) (user model.User, err error) {
 	return
 }
 
+// UpdateUser updates the list of fields for a user
+func (c *UserDB) UpdateUser(user *model.User, fields map[string]interface{}) (err error) {
+	return c.ds.Model(user).Update(fields).Error
+}
+
 // UpdateUserPassword updated the user with the new password hash
 func (c *UserDB) UpdateUserPassword(idUser int, newPassword string, trx *gorm.DB) (err error) {
 
