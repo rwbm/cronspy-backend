@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/astropay/go-tools/files"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 func main() {

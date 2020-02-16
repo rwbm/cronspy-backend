@@ -2,7 +2,7 @@ package api
 
 import (
 	"cronspy/backend/pkg/api/user"
-	"cronspy/backend/pkg/api/user/transport"
+	ut "cronspy/backend/pkg/api/user/transport"
 	"cronspy/backend/pkg/util/config"
 	"cronspy/backend/pkg/util/log"
 	"cronspy/backend/pkg/util/server"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 // Start starts the API service
@@ -18,7 +17,7 @@ func Start(cfg *config.Configuration) (err error) {
 
 	// create DB connection
 	connString := createMySQLConnectionString(cfg.Database.Address, cfg.Database.Username, cfg.Database.Password, cfg.Database.DefaultDB)
-	ds, errDB := gorm.Open("mysql", connString)
+	ds, errDB := gorm.Open(cfg.Database.Driver, connString)
 	if errDB != nil {
 		return errDB
 	}
@@ -34,7 +33,7 @@ func Start(cfg *config.Configuration) (err error) {
 
 	// +++++++++++ SERVICES ++++++++++++
 	//
-	transport.NewHTTP(user.Initialize(ds, logger, cfg.Server.TokenExpiration), e)
+	ut.NewHTTP(user.Initialize(ds, logger, cfg.Server.TokenExpiration), e)
 	//
 	// +++++++++++++++++++++++++++++++++
 

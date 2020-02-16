@@ -29,18 +29,26 @@ type HTTP struct {
 	svc user.Service
 }
 
-// NewHTTP creates new http service
+// NewHTTP creates new http service to handle request to /user
 func NewHTTP(svc user.Service, e *echo.Echo) {
 	h := HTTP{svc: svc}
 
 	user := e.Group("/user")
+
+	// --- Auth NOT required ---
 	user.POST("/register", h.userRegisterHandler)
 	user.POST("/login", h.userLoginHandler)
+
+	user.POST("/passwordReset", h.userPasswordResetRequestHandler)
+	user.GET("/passwordReset/validate", h.userPasswordResetValidateHandler)
+	user.POST("/passwordReset/change", h.userPasswordResetChangeHandler)
+
+	// --- Auth required ---
 	user.PUT("/changePassword", h.userChangePasswordHandler, IsUserLoggedIn)
 }
 
 //
-// USER REGISTRATION
+// --- USER REGISTRATION ---
 //
 func (h *HTTP) userRegisterHandler(c echo.Context) error {
 	user := new(model.User)
@@ -65,7 +73,7 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 }
 
 //
-// LOGIN
+// --- LOGIN ---
 //
 func (h *HTTP) userLoginHandler(c echo.Context) error {
 
@@ -74,21 +82,21 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 		Password string `json:"password"`
 	}
 
-	cred := new(credentials)
-	if err := c.Bind(cred); err != nil {
+	payload := new(credentials)
+	if err := c.Bind(payload); err != nil {
 		return err
 	}
 
 	// if email or password does not meet basic criteria, return generic error
-	if err := h.validateEmailInput(cred.Username); err != nil {
+	if err := h.validateEmailInput(payload.Username); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 	}
-	if err := h.validatePasswordInput(cred.Password); err != nil {
+	if err := h.validatePasswordInput(payload.Password); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 	}
 
 	// run login
-	user, err := h.svc.Login(cred.Username, cred.Password)
+	user, err := h.svc.Login(payload.Username, payload.Password)
 	if err != nil {
 		return err
 	}
@@ -108,7 +116,76 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 }
 
 //
-// CHANGE PASSWORD
+// --- PASSWORD RESET: REQUEST ---
+//
+func (h *HTTP) userPasswordResetRequestHandler(c echo.Context) error {
+
+	type requestResponse struct {
+		Email string `json:"email,omitempty"`
+		ID    string `json:"id,omitempty"`
+	}
+
+	payload := new(requestResponse)
+	if err := c.Bind(payload); err != nil {
+		return err
+	}
+
+	resetID, err := h.svc.ResetPassword(payload.Email)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, requestResponse{ID: resetID})
+}
+
+//
+// --- PASSWORD RESET: VALIDATE ---
+//
+func (h *HTTP) userPasswordResetValidateHandler(c echo.Context) error {
+
+	token := c.QueryParam("token")
+	if token == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err := h.svc.ValidateResetPassword(token)
+	if err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+//
+// --- PASSWORD RESET: CHANGE ---
+//
+func (h *HTTP) userPasswordResetChangeHandler(c echo.Context) error {
+
+	type credentials struct {
+		Token       string `json:"token"`
+		NewPassword string `json:"new_password"`
+	}
+
+	payload := new(credentials)
+	if err := c.Bind(payload); err != nil {
+		return err
+	}
+
+	// if email or password does not meet basic criteria, return error
+	if err := h.validatePasswordInput(payload.NewPassword); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.ErrInvalidPasswordFormat.Error(), ""))
+	}
+
+	// change password
+	if err := h.svc.ChangePasswordWithReset(payload.Token, payload.NewPassword); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+//
+// --- CHANGE PASSWORD ---
 //
 func (h *HTTP) userChangePasswordHandler(c echo.Context) error {
 
@@ -117,13 +194,13 @@ func (h *HTTP) userChangePasswordHandler(c echo.Context) error {
 		NewPassword string `json:"new_password"`
 	}
 
-	cred := new(credentials)
-	if err := c.Bind(cred); err != nil {
+	payload := new(credentials)
+	if err := c.Bind(payload); err != nil {
 		return err
 	}
 
-	// if email or password does not meet basic criteria, return generic error
-	if err := h.validatePasswordInput(cred.NewPassword); err != nil {
+	// if email or password does not meet basic criteria, return error
+	if err := h.validatePasswordInput(payload.NewPassword); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.ErrInvalidPasswordFormat.Error(), ""))
 	}
 
@@ -137,7 +214,7 @@ func (h *HTTP) userChangePasswordHandler(c echo.Context) error {
 	}
 
 	// run change password
-	err := h.svc.ChangePassword(int(idUser), cred.OldPassword, cred.NewPassword)
+	err := h.svc.ChangePassword(int(idUser), payload.OldPassword, payload.NewPassword)
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,11 @@ type UserDB struct {
 	ds *gorm.DB
 }
 
+// Transaction returns a new database transaction
+func (c *UserDB) Transaction() *gorm.DB {
+	return c.ds.Begin()
+}
+
 // RegisterUser creates a new user in the database
 func (c *UserDB) RegisterUser(user *model.User) (id int, err error) {
 	err = c.ds.Create(&user).Error
@@ -43,9 +48,21 @@ func (c *UserDB) GetUserByID(idUser int) (user model.User, err error) {
 }
 
 // UpdateUserPassword updated the user with the new password hash
-func (c *UserDB) UpdateUserPassword(idUser int, newPassword string) (err error) {
+func (c *UserDB) UpdateUserPassword(idUser int, newPassword string, trx *gorm.DB) (err error) {
+
+	ds := c.ds
+	if trx != nil {
+		ds = trx
+
+		defer func() {
+			if r := recover(); r != nil {
+				ds.Rollback()
+			}
+		}()
+	}
+
 	if hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 10); err == nil {
-		err = c.ds.Model(model.User{}).Update("password", []byte(hashedPassword)).Error
+		err = ds.Model(model.User{}).Update("password", []byte(hashedPassword)).Error
 	}
 
 	return

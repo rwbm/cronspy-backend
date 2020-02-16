@@ -11,21 +11,31 @@ var (
 
 // Standar error codes
 const (
-	CodeInternalServerError = "internal_server_error"
-	CodeUnauthorized        = "unauthorized"
-	CodeUserExists          = "user_exists"
-	CodeInvalidPassword     = "invalid_password"
+	CodeNotFound                  = "not_found"
+	CodeInternalServerError       = "internal_server_error"
+	CodeUnauthorized              = "unauthorized"
+	CodeUserExists                = "user_exists"
+	CodeInvalidPassword           = "invalid_password"
+	CodeUnknownUser               = "unknown_user"
+	CodeMaxPasswordResetReached   = "max_password_reset_reached"
+	CodeNeedToWaitBeforeResend    = "wait_before_resend"
+	CodePasswordResetTokenExpired = "password_reset_token_expired"
 )
 
 var (
 	// map with text messages associated
 	messages = map[string]string{
+		CodeNotFound:                     "not found",
 		CodeInternalServerError:          "internal server error ocurred",
 		CodeUnauthorized:                 "unauthorized request",
 		CodeUserExists:                   "user already exists",
 		ErrInvalidEmailAddress.Error():   "invalid email address",
 		ErrInvalidPasswordFormat.Error(): "invalid password format",
 		CodeInvalidPassword:              "invalid password",
+		CodeUnknownUser:                  "unknown user",
+		CodeMaxPasswordResetReached:      "max number of password resets has been reached",
+		CodeNeedToWaitBeforeResend:       "need to wait some time before resending the email",
+		CodePasswordResetTokenExpired:    "the password reset token has expired",
 	}
 )
 

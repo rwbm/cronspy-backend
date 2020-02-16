@@ -23,7 +23,7 @@ type User struct {
 	Name           string    `gorm:"type:varchar(128);NOT NULL" json:"name"`
 	HashedPassword string    `gorm:"column:password;type:varchar(128);NOT NULL" json:"-"`
 	Password       string    `gorm:"-" json:"password,omitempty"`
-	AccountType    string    `gorm:"type:default(FREE);NOT NULL" json:"account_type"`
+	AccountType    string    `gorm:"default(FREE);NOT NULL" json:"account_type"`
 }
 
 // HashPassword takes the value from .Password and stores
@@ -45,11 +45,4 @@ func (u *User) ValidatePassword(password string) bool {
 func (u *User) CleanPassword() {
 	u.Password = ""
 	u.HashedPassword = ""
-}
-
-// Team is a way of grouping users (only paid accounts)
-type Team struct {
-	ID          int       `gorm:"column:id_team;primary_key;AUTO_INCREMENT"`
-	DateCreated time.Time `gorm:"NOT NULL"`
-	Name        string    `gorm:"type:varchar(128);NOT NULL"`
 }
