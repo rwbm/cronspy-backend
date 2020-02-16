@@ -87,7 +87,7 @@ func (u *User) ChangePassword(idUser int, oldPassword, newPassword string) (err 
 			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 		} else {
 			// update password
-			if errUpdate := u.database.UpdateUserPassword(user.ID, newPassword); errUpdate != nil {
+			if errUpdate := u.database.UpdateUserPassword(user.ID, newPassword, nil); errUpdate != nil {
 				u.logger.Error("error updating user password", errUpdate, map[string]interface{}{"id_user": idUser})
 				err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errUpdate.Error()))
 			}
@@ -99,6 +99,60 @@ func (u *User) ChangePassword(idUser int, oldPassword, newPassword string) (err 
 		} else {
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
 		}
+	}
+
+	return
+}
+
+// ChangePasswordWithReset handles logic for password changes using
+// a password reset token
+func (u *User) ChangePasswordWithReset(resetToken, newPassword string) (err error) {
+
+	// load token from DB
+	pr, errGetToken := u.database.GetPasswordResetByID(resetToken, nil)
+	if errGetToken != nil {
+		if errGetToken == exception.ErrRecordNotFound {
+			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
+		} else {
+			u.logger.Error("error loading password reset", errGetToken, map[string]interface{}{"token": resetToken})
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errGetToken.Error()))
+		}
+
+		return
+	}
+
+	// check password reset is in valid state
+	if !pr.Validated || pr.Used {
+		u.logger.Warn("tried to use a reset token with invalid state", map[string]interface{}{"token": resetToken, "validated": pr.Validated, "used": pr.Used})
+		return echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
+	}
+
+	// get user
+	user, err := u.database.GetUserByID(pr.IDUser)
+	if err == nil {
+
+		trx := u.database.Transaction()
+
+		// update password
+		if errUpdate := u.database.UpdateUserPassword(user.ID, newPassword, trx); errUpdate != nil {
+			u.logger.Error("error updating user password", errUpdate, map[string]interface{}{"id_user": user.ID})
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errUpdate.Error()))
+			trx.Rollback()
+			return
+		}
+
+		// mark token as used
+		if errUpdateToken := u.database.MarkPasswordResetAsUsed(resetToken, trx); errUpdateToken != nil {
+			u.logger.Error("error marking reset token as used", errUpdateToken, map[string]interface{}{"token": resetToken})
+			trx.Rollback()
+			return
+		}
+
+		trx.Commit()
+
+	} else {
+		u.logger.Error("error loading user associated to password reset", err, map[string]interface{}{"id_user": user.ID, "token": resetToken})
+		err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
 	}
 
 	return
@@ -158,7 +212,7 @@ func (u *User) ResetPassword(email string) (resetID string, err error) {
 func (u *User) ValidateResetPassword(resetID string) (err error) {
 
 	// find password reset token
-	reset, errGetReset := u.database.GetPasswordResetByID(resetID)
+	reset, errGetReset := u.database.GetPasswordResetByID(resetID, nil)
 	if errGetReset != nil {
 		if errGetReset == exception.ErrRecordNotFound {
 			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
