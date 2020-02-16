@@ -42,7 +42,7 @@ func New(debug bool) *echo.Echo {
 }
 
 // Start starts echo server
-func Start(e *echo.Echo, cfg *Config, log *log.Log) {
+func Start(e *echo.Echo, cfg *Config, log *log.Log, serviceName string) {
 
 	s := &http.Server{
 		Addr:         cfg.Port,
@@ -56,7 +56,7 @@ func Start(e *echo.Echo, cfg *Config, log *log.Log) {
 	e.HidePort = !cfg.Debug
 
 	// start server
-	log.Info("starting xxxx", nil)
+	log.Info("starting "+serviceName, nil)
 	go func() {
 		if err := e.StartServer(s); err != nil {
 			log.Error("error starting the server:", err, nil)
@@ -75,6 +75,6 @@ func Start(e *echo.Echo, cfg *Config, log *log.Log) {
 	if err := e.Shutdown(ctx); err != nil {
 		log.Error("error stopping server", err, nil)
 	} else {
-		log.Info("xxxx stoped!", nil)
+		log.Info(serviceName+" stoped!", nil)
 	}
 }

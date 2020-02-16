@@ -13,25 +13,28 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-const (
-	jwtSigningKey = "10fa4f27-6a69-45c1-9a88-dfcecdbdc3d8"
-)
-
 var (
 	// IsUserLoggedIn is a middleware to restrict URL to logged user
-	IsUserLoggedIn = middleware.JWTWithConfig(getJWTConfig())
-	// used jwt signing method
-	jwtSigningMethod = jwt.SigningMethodHS512
+	IsUserLoggedIn echo.MiddlewareFunc
 )
 
 // HTTP represents auth http service
 type HTTP struct {
-	svc user.Service
+	svc              user.Service
+	jwtSigningKey    string
+	jwtSigningMethod *jwt.SigningMethodHMAC
 }
 
 // NewHTTP creates new http service to handle request to /user
-func NewHTTP(svc user.Service, e *echo.Echo) {
-	h := HTTP{svc: svc}
+func NewHTTP(svc user.Service, jwtSigningKey string, jwtSigningMethod *jwt.SigningMethodHMAC, e *echo.Echo) {
+	h := HTTP{
+		svc:              svc,
+		jwtSigningKey:    jwtSigningKey,
+		jwtSigningMethod: jwtSigningMethod,
+	}
+
+	// define logged user check function
+	IsUserLoggedIn = middleware.JWTWithConfig(h.getJWTConfig())
 
 	user := e.Group("/user")
 
@@ -103,7 +106,7 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 
 	// generate JWT
 	token := h.buildJWTToken(user.ID, user.Email, user.Name, user.AccountType, h.svc.GetJWTExpiration())
-	t, errSign := token.SignedString([]byte(jwtSigningKey))
+	t, errSign := token.SignedString([]byte(h.jwtSigningKey))
 	if errSign != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errSign.Error()))
 	}
@@ -242,7 +245,7 @@ func (h *HTTP) validatePasswordInput(password string) (err error) {
 
 // build JWT with the indicated parameters
 func (h *HTTP) buildJWTToken(userID int, email, name, accountType string, tokenExpiration int) *jwt.Token {
-	token := jwt.New(jwtSigningMethod)
+	token := jwt.New(h.jwtSigningMethod)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = userID
 	claims["email"] = email
@@ -253,8 +256,8 @@ func (h *HTTP) buildJWTToken(userID int, email, name, accountType string, tokenE
 	return token
 }
 
-func getJWTConfig() (jwtCfg middleware.JWTConfig) {
-	jwtCfg.SigningMethod = jwtSigningMethod.Name
-	jwtCfg.SigningKey = []byte(jwtSigningKey)
+func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
+	jwtCfg.SigningMethod = h.jwtSigningMethod.Name
+	jwtCfg.SigningKey = []byte(h.jwtSigningKey)
 	return
 }

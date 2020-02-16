@@ -26,6 +26,10 @@ type User struct {
 	AccountType    string    `gorm:"default(FREE);NOT NULL" json:"account_type"`
 }
 
+func (User) TableName() string {
+	return "cronspy.users"
+}
+
 // HashPassword takes the value from .Password and stores
 // the BCrypted version of if in HashedPassword
 func (u *User) HashPassword() {

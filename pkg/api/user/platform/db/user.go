@@ -8,23 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// NewUserDB returns a new tax database instance
-func NewUserDB(ds *gorm.DB) (c *UserDB) {
-	c = new(UserDB)
-	c.ds = ds
-	return
-}
-
-// UserDB contains the services to handle users
-type UserDB struct {
-	ds *gorm.DB
-}
-
-// Transaction returns a new database transaction
-func (c *UserDB) Transaction() *gorm.DB {
-	return c.ds.Begin()
-}
-
 // RegisterUser creates a new user in the database
 func (c *UserDB) RegisterUser(user *model.User) (id int, err error) {
 	err = c.ds.Create(&user).Error
