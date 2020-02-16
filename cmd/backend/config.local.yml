@@ -1,4 +1,5 @@
 server:
+  name: backend-service
   port: :8088
   read_timeout: 10
   write_timeout: 5

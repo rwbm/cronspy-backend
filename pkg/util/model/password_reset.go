@@ -18,6 +18,10 @@ type PasswordReset struct {
 	Used          bool      `gorm:"DEFAULT(0);NOT NULL"`
 }
 
+func (PasswordReset) TableName() string {
+	return "cronspy.password_resets"
+}
+
 // BeforeCreate sets the unique ID before record is saved in the database
 func (pr *PasswordReset) BeforeCreate(scope *gorm.Scope) error {
 	scope.SetColumn("ID", uuid.New().String())
