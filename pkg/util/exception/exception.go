@@ -20,6 +20,8 @@ const (
 	CodeMaxPasswordResetReached   = "max_password_reset_reached"
 	CodeNeedToWaitBeforeResend    = "wait_before_resend"
 	CodePasswordResetTokenExpired = "password_reset_token_expired"
+	CodeInvalidPage               = "invalid_page"
+	CodeInvalidPageSize           = "invalid_page_size"
 )
 
 var (
@@ -36,6 +38,8 @@ var (
 		CodeMaxPasswordResetReached:      "max number of password resets has been reached",
 		CodeNeedToWaitBeforeResend:       "need to wait some time before resending the email",
 		CodePasswordResetTokenExpired:    "the password reset token has expired",
+		CodeInvalidPage:                  "invalid page value",
+		CodeInvalidPageSize:              "invalid page size value",
 	}
 )
 

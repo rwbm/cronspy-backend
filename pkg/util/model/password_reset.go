@@ -18,6 +18,7 @@ type PasswordReset struct {
 	Used          bool      `gorm:"DEFAULT(0);NOT NULL"`
 }
 
+// TableName returns the table name for the model
 func (PasswordReset) TableName() string {
 	return "cronspy.password_resets"
 }
