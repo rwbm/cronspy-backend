@@ -26,6 +26,7 @@ type User struct {
 	AccountType    string    `gorm:"default(FREE);NOT NULL" json:"account_type"`
 }
 
+// TableName returns the table name for the model
 func (User) TableName() string {
 	return "cronspy.users"
 }

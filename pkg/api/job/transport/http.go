@@ -5,10 +5,16 @@ import (
 	"cronspy/backend/pkg/util/exception"
 	"cronspy/backend/pkg/util/model"
 	"net/http"
+	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+)
+
+const (
+	// DefaultPageSize configures the default number of records to return
+	DefaultPageSize = 10
 )
 
 var (
@@ -34,10 +40,9 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 	// define logged user check function
 	IsUserLoggedIn = middleware.JWTWithConfig(h.getJWTConfig())
 
-	job := e.Group("/jobs")
+	jobs := e.Group("/jobs")
+	jobs.GET("", h.userJobsHandler, IsUserLoggedIn) // get user jobs
 
-	// --- Auth required ---
-	job.GET("", h.userJobsHandler, IsUserLoggedIn)
 }
 
 func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
@@ -61,18 +66,39 @@ func (h *HTTP) userJobsHandler(c echo.Context) error {
 	}
 
 	// get pagination data
-	// pageStr := c.QueryParam("page")
-	// pageCountStr := c.QueryParam("page_count")
+	var page, pageSize int
+	pageStr := c.QueryParam("page")
+	pageSizeStr := c.QueryParam("page_size")
+
+	if pageStr == "" {
+		pageStr = "1"
+	}
+	if pageSizeStr == "" {
+		pageSize = DefaultPageSize
+	}
+
+	page, errConv := strconv.Atoi(pageStr)
+	if errConv != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeInvalidPage, ""))
+	}
+
+	if pageSize == 0 {
+		pageSize, errConv = strconv.Atoi(pageSizeStr)
+		if errConv != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeInvalidPageSize, ""))
+		}
+	}
 
 	// get jobs
-	jobs, err := h.svc.GetJobs(int(idUser), 0, 0)
+	jobs, p, err := h.svc.GetJobs(int(idUser), pageSize, page)
 	if err != nil {
 		return err
 	}
 
 	type response struct {
-		Jobs []model.Job `json:"jobs"`
+		Jobs       []model.Job      `json:"jobs,omitempty"`
+		Pagination model.Pagination `json:"pagination,omitempty"`
 	}
 
-	return c.JSON(http.StatusOK, response{Jobs: jobs})
+	return c.JSON(http.StatusOK, response{Jobs: jobs, Pagination: p})
 }

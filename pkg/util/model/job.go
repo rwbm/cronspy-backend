@@ -23,6 +23,7 @@ type Job struct {
 	Alerts                  []JobAlert `gorm:"foreignkey:ID" json:"-"`
 }
 
+// TableName returns the table name for the model
 func (Job) TableName() string {
 	return "cronspy.jobs"
 }
@@ -43,6 +44,7 @@ type JobAlert struct {
 	Channel                   Channel `gorm:"foreignkey:IDChannel" json:"-"`
 }
 
+// TableName returns the table name for the model
 func (JobAlert) TableName() string {
 	return "cronspy.job_alerts"
 }

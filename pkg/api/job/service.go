@@ -10,14 +10,14 @@ import (
 
 // Service holds the functions delcared in the service interface
 type Service interface {
-	GetJobs(idUser int, count, offset int) (jobs []model.Job, err error)
+	GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model.Pagination, err error)
 }
 
 // DB holds the functions for database access
 type DB interface {
 	Transaction() *gorm.DB
 
-	GetJobs(idUser int, count, offset int) (jobs []model.Job, err error)
+	GetJobs(idUser int, count, offset int) (jobs []model.Job, p model.Pagination, err error)
 }
 
 // Job defines the module for user related operations

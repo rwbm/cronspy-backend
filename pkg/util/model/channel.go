@@ -15,6 +15,7 @@ type Channel struct {
 	Name   string `gorm:"NOT NULL" json:"name"`
 }
 
+// TableName returns the table name for the model
 func (Channel) TableName() string {
 	return "cronspy.channels"
 }
