@@ -14,7 +14,7 @@ import (
 
 const (
 	// DefaultPageSize configures the default number of records to return
-	DefaultPageSize = 10
+	DefaultPageSize = 15
 )
 
 var (
@@ -40,9 +40,11 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 	// define logged user check function
 	IsUserLoggedIn = middleware.JWTWithConfig(h.getJWTConfig())
 
+	// configure routes
 	jobs := e.Group("/jobs")
-	jobs.GET("", h.userJobsHandler, IsUserLoggedIn) // get user jobs
 
+	jobs.GET("", h.userJobsHandler, IsUserLoggedIn)       // get user jobs
+	jobs.GET("/:job-id", h.getJobHandler, IsUserLoggedIn) // get job by id
 }
 
 func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
@@ -101,4 +103,30 @@ func (h *HTTP) userJobsHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response{Jobs: jobs, Pagination: p})
+}
+
+//
+// --- GET JOB ---
+//
+func (h *HTTP) getJobHandler(c echo.Context) error {
+	// get user id
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	idUser, ok := claims["id"].(float64)
+
+	if !ok {
+		return echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
+	}
+
+	// get jobs
+	job, err := h.svc.GetJob(c.Param("job-id"))
+	if err != nil {
+		return err
+	}
+
+	if job.IDUser != int(idUser) {
+		return echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
+	}
+
+	return c.JSON(http.StatusOK, job)
 }

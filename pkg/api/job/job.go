@@ -19,3 +19,17 @@ func (j *Job) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model
 
 	return
 }
+
+// GetJob return a job data by the ID
+func (j *Job) GetJob(id string) (job model.Job, err error) {
+	job, err = j.database.GetJobByID(id)
+	if err != nil {
+		if err == exception.ErrRecordNotFound {
+			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
+		} else {
+			j.logger.Error("error loading job", err, map[string]interface{}{"id_job": id})
+			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
+		}
+	}
+	return
+}
