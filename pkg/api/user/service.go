@@ -29,6 +29,7 @@ type DB interface {
 	GetUserByEmail(email string) (user model.User, err error)
 	GetUserByID(idUser int) (user model.User, err error)
 	UpdateUserPassword(idUser int, newPassword string, trx *gorm.DB) (err error)
+	UpdateUser(user *model.User, fields map[string]interface{}) (err error)
 
 	// Password resets
 	CreatePasswordReset(reset *model.PasswordReset) (err error)
