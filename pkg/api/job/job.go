@@ -33,3 +33,15 @@ func (j *Job) GetJob(id string) (job model.Job, err error) {
 	}
 	return
 }
+
+// CreateJob registers a new job for a user
+func (j *Job) CreateJob(job *model.Job) (err error) {
+
+	err = j.database.CreateJob(job)
+	if err != nil {
+		j.logger.Error("error creating job", err, map[string]interface{}{"id_user": job.IDUser})
+		err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
+	}
+
+	return
+}
