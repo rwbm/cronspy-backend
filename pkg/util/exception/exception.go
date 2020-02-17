@@ -22,6 +22,7 @@ const (
 	CodePasswordResetTokenExpired = "password_reset_token_expired"
 	CodeInvalidPage               = "invalid_page"
 	CodeInvalidPageSize           = "invalid_page_size"
+	CodeInvalidFields             = "invalid_fields"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 		CodePasswordResetTokenExpired:    "the password reset token has expired",
 		CodeInvalidPage:                  "invalid page value",
 		CodeInvalidPageSize:              "invalid page size value",
+		CodeInvalidFields:                "invalid or missing required fields",
 	}
 )
 
@@ -61,6 +63,33 @@ func GetErrorMap(code, msg string) (m map[string]string) {
 			if message, ok := messages[code]; ok {
 				m["message"] = message
 			}
+		}
+	}
+	return
+}
+
+// GetErrorMapWithFields returns a map with the provided error code and associated message;
+// it also has the chance to set `fields`
+func GetErrorMapWithFields(code, msg, fields string) (m map[string]string) {
+	if code != "" || msg != "" {
+		m = make(map[string]string)
+
+		if code != "" {
+			m["code"] = code
+		} else {
+			m["code"] = CodeInternalServerError
+		}
+
+		if msg != "" {
+			m["message"] = msg
+		} else if code != "" {
+			if message, ok := messages[code]; ok {
+				m["message"] = message
+			}
+		}
+
+		if fields != "" {
+			m["fields"] = fields
 		}
 	}
 	return
