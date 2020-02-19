@@ -16,6 +16,7 @@ type Service interface {
 
 	SaveChannel(c *model.Channel) (err error)
 	DeleteChannel(idChannel, idUser int) (err error)
+	UpdateChannel(idChannel, idUser int, channel *model.Channel) (err error)
 }
 
 // DB holds the functions for database access
@@ -29,6 +30,7 @@ type DB interface {
 	GetChannel(idChannel int, loadChannelConfig bool) (c model.Channel, err error)
 	SaveChannel(channel *model.Channel) (err error)
 	DeleteChannel(channel *model.Channel) (err error)
+	UpdateChannel(channel *model.Channel) (err error)
 }
 
 // Job defines the module for user related operations

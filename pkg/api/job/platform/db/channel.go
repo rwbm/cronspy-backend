@@ -50,12 +50,6 @@ func (j *JobDB) SaveChannel(channel *model.Channel) (err error) {
 	return
 }
 
-// SaveCahnnelConfig saves channel configuration into the database
-func (j *JobDB) saveCahnnelConfig(channel *model.Channel) (err error) {
-	err = j.ds.Save(channel.Configuration).Error
-	return
-}
-
 // GetChannels returns the list of channels defined by a user;
 // specific channel configuration can also be loaded.
 func (j *JobDB) GetChannels(idUser int, loadChannelConfig bool) (channels []model.Channel, err error) {
@@ -173,5 +167,53 @@ func (j *JobDB) DeleteChannel(channel *model.Channel) (err error) {
 
 	// commit changes if everything was OK
 	trx.Commit()
+	return
+}
+
+// UpdateChannel saves configuration for an existing channel;
+// only name and configuration can be changed.
+func (j *JobDB) UpdateChannel(channel *model.Channel) (err error) {
+
+	if channel.ID > 0 {
+		trx := j.ds.Begin()
+
+		if err = trx.Model(&channel).Updates(map[string]interface{}{"name": channel.Name}).Error; err == nil {
+			// save configuration
+			var cfg interface{}
+
+			switch channel.Type {
+
+			case model.ChannelTypeEmail:
+				c := channel.GetChannelEmail()
+				cfg = &c
+
+			case model.ChannelTypeSlack:
+				c := channel.GetChannelSlack()
+				cfg = &c
+
+			case model.ChannelTypeWebHook:
+				c := channel.GetChannelWebHook()
+				cfg = &c
+			}
+
+			if err = trx.Save(cfg).Error; err != nil {
+				trx.Rollback()
+				return
+			}
+
+			// save changes
+			trx.Commit()
+
+		} else {
+			trx.Rollback()
+		}
+	}
+
+	return
+}
+
+// saves channel configuration into the database
+func (j *JobDB) saveCahnnelConfig(channel *model.Channel) (err error) {
+	err = j.ds.Save(channel.Configuration).Error
 	return
 }

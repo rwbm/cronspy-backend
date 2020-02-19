@@ -51,7 +51,8 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 
 	channels := e.Group("/channels")
 	channels.POST("", h.createChannelHandler, IsUserLoggedIn)               // create channel
-	channels.DELETE("/:channel-id", h.deleteChannelHandler, IsUserLoggedIn) // delete channel by ID
+	channels.DELETE("/:channel-id", h.deleteChannelHandler, IsUserLoggedIn) // delete channel
+	channels.PUT("/:channel-id", h.updateChannelHandler, IsUserLoggedIn)    // update channel
 
 }
 
@@ -228,6 +229,38 @@ func (h *HTTP) deleteChannelHandler(c echo.Context) error {
 	errDelete := h.svc.DeleteChannel(idChannel, idUser)
 	if errDelete != nil {
 		return errDelete
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+//
+// --- UPDATE CHANNEL ---
+//
+func (h *HTTP) updateChannelHandler(c echo.Context) error {
+
+	// get user id
+	idUser, _, err := h.getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	// get channel id from path
+	idChannelStr := c.Param("channel-id")
+	idChannel, errConv := strconv.Atoi(idChannelStr)
+	if errConv != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeInvalidEntityID, errConv.Error()))
+	}
+
+	payload := new(model.Channel)
+	if err := c.Bind(payload); err != nil {
+		return err
+	}
+
+	// save channel
+	errUpdate := h.svc.UpdateChannel(idChannel, idUser, payload)
+	if errUpdate != nil {
+		return errUpdate
 	}
 
 	return c.NoContent(http.StatusOK)

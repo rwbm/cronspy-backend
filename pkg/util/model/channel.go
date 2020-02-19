@@ -10,7 +10,7 @@ const (
 // Channel represents a notification channel
 type Channel struct {
 	ID            int                    `gorm:"column:id_channel;primary_key" json:"id"`
-	IDUser        int                    `gorm:"NOT NULL" json:"id_user"`
+	IDUser        int                    `gorm:"NOT NULL" json:"-"`
 	Type          string                 `gorm:"NOT NULL" json:"type"`
 	Name          string                 `gorm:"NOT NULL" json:"name"`
 	Configuration map[string]interface{} `gorm:"-" json:"configuration"`
@@ -24,6 +24,7 @@ func (Channel) TableName() string {
 // GetChannelWebHook returns Configuration as `ChannelWebHook`
 func (c *Channel) GetChannelWebHook() (cwh ChannelWebHook) {
 	if c.Configuration != nil {
+		cwh.ID = c.ID
 		if v, ok := c.Configuration["base_url"].(string); ok {
 			cwh.BaseURL = v
 		}
@@ -64,6 +65,7 @@ func (c *Channel) SetChannelWebHook(cwh ChannelWebHook) {
 // GetChannelSlack returns Configuration as `ChannelSlack`
 func (c *Channel) GetChannelSlack() (cs ChannelSlack) {
 	if c.Configuration != nil {
+		cs.ID = c.ID
 		if v, ok := c.Configuration["base_url"].(string); ok {
 			cs.BaseURL = v
 		}
@@ -92,6 +94,7 @@ func (c *Channel) SetChannelSlack(cwh ChannelSlack) {
 // GetChannelEmail returns Configuration as `ChannelEmail`
 func (c *Channel) GetChannelEmail() (ce ChannelEmail) {
 	if c.Configuration != nil {
+		ce.ID = c.ID
 		if v, ok := c.Configuration["email"].(string); ok {
 			ce.Email = v
 		}
