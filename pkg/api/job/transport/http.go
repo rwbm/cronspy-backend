@@ -50,6 +50,7 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 	jobs.GET("/:job-id", h.getJobHandler, IsUserLoggedIn) // get job by id
 
 	channels := e.Group("/channels")
+	channels.GET("", h.getChannelsHandler, IsUserLoggedIn)                  // get user channels
 	channels.POST("", h.createChannelHandler, IsUserLoggedIn)               // create channel
 	channels.DELETE("/:channel-id", h.deleteChannelHandler, IsUserLoggedIn) // delete channel
 	channels.PUT("/:channel-id", h.updateChannelHandler, IsUserLoggedIn)    // update channel
@@ -160,6 +161,29 @@ func (h *HTTP) createJobHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, payload)
+}
+
+//
+// --- GET CHANNELS ---
+//
+func (h *HTTP) getChannelsHandler(c echo.Context) error {
+	// get user id
+	idUser, _, err := h.getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	channels, err := h.svc.GetChannels(idUser)
+	if err != nil {
+		return err
+	}
+
+	// format response
+	type response struct {
+		Channels []model.Channel `json:"channels"`
+	}
+
+	return c.JSON(http.StatusOK, response{Channels: channels})
 }
 
 //

@@ -56,27 +56,9 @@ func (j *JobDB) GetChannels(idUser int, loadChannelConfig bool) (channels []mode
 	if err = j.ds.Model(model.Channel{}).Where("id_user = ?", idUser).Find(&channels).Error; err == nil {
 
 		if loadChannelConfig {
-
+			// load configuration for each channel
 			for i := range channels {
-				var q *gorm.DB
-
-				switch channels[i].Type {
-
-				case model.ChannelTypeEmail:
-					q = j.ds.Model(model.ChannelEmail{})
-
-				case model.ChannelTypeWebHook:
-					q = j.ds.Model(model.ChannelWebHook{})
-
-				case model.ChannelTypeSlack:
-					q = j.ds.Model(model.ChannelSlack{})
-
-				default:
-					err = fmt.Errorf("channel type '%s' not supported", channels[i].Type)
-					return
-				}
-
-				if err = q.Where("id_channel = ?", channels[i].ID).First(&channels[i].Configuration).Error; err != nil {
+				if err = j.getChannelConfig(&channels[i]); err != nil {
 					break
 				}
 			}
@@ -91,34 +73,7 @@ func (j *JobDB) GetChannel(idChannel int, loadChannelConfig bool) (c model.Chann
 	err = j.ds.Model(c).Where("id_channel = ?", idChannel).First(&c).Error
 	if err == nil {
 		if loadChannelConfig {
-
-			switch c.Type {
-
-			case model.ChannelTypeEmail:
-				m := &model.ChannelEmail{}
-				q := j.ds.Model(m)
-				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
-					c.SetChannelEmail(*m)
-				}
-
-			case model.ChannelTypeWebHook:
-				m := &model.ChannelWebHook{}
-				q := j.ds.Model(m)
-				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
-					c.SetChannelWebHook(*m)
-				}
-
-			case model.ChannelTypeSlack:
-				m := &model.ChannelSlack{}
-				q := j.ds.Model(m)
-				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
-					c.SetChannelSlack(*m)
-				}
-
-			default:
-				err = fmt.Errorf("channel type '%s' not supported", c.Type)
-			}
-
+			err = j.getChannelConfig(&c)
 		}
 	} else {
 		if err == gorm.ErrRecordNotFound {
@@ -215,5 +170,37 @@ func (j *JobDB) UpdateChannel(channel *model.Channel) (err error) {
 // saves channel configuration into the database
 func (j *JobDB) saveCahnnelConfig(channel *model.Channel) (err error) {
 	err = j.ds.Save(channel.Configuration).Error
+	return
+}
+
+func (j *JobDB) getChannelConfig(c *model.Channel) (err error) {
+
+	switch c.Type {
+
+	case model.ChannelTypeEmail:
+		m := &model.ChannelEmail{}
+		q := j.ds.Model(m)
+		if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+			c.SetChannelEmail(*m)
+		}
+
+	case model.ChannelTypeWebHook:
+		m := &model.ChannelWebHook{}
+		q := j.ds.Model(m)
+		if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+			c.SetChannelWebHook(*m)
+		}
+
+	case model.ChannelTypeSlack:
+		m := &model.ChannelSlack{}
+		q := j.ds.Model(m)
+		if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+			c.SetChannelSlack(*m)
+		}
+
+	default:
+		err = fmt.Errorf("channel type '%s' not supported", c.Type)
+	}
+
 	return
 }

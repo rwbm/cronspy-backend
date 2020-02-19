@@ -86,3 +86,15 @@ func (j *Job) UpdateChannel(idChannel, idUser int, channel *model.Channel) (err 
 
 	return
 }
+
+// GetChannels returns all the channels configured for a user
+func (j *Job) GetChannels(idUser int) (channels []model.Channel, err error) {
+
+	channels, err = j.database.GetChannels(idUser, true)
+	if err != nil {
+		j.logger.Error("error loading user channels", err, map[string]interface{}{"idUser": idUser})
+		err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
+	}
+
+	return
+}

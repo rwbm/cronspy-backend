@@ -78,16 +78,16 @@ func (c *Channel) GetChannelSlack() (cs ChannelSlack) {
 
 // SetChannelSlack sets the configuration map with
 // the values of the model
-func (c *Channel) SetChannelSlack(cwh ChannelSlack) {
+func (c *Channel) SetChannelSlack(cs ChannelSlack) {
 	if c.Configuration == nil {
 		c.Configuration = make(map[string]interface{})
 	}
 
-	if cwh.BaseURL == "" {
-		c.Configuration["base_url"] = cwh.BaseURL
+	if cs.BaseURL != "" {
+		c.Configuration["base_url"] = cs.BaseURL
 	}
-	if cwh.SlackChannelName != nil {
-		c.Configuration["slack_channel_name"] = *cwh.SlackChannelName
+	if cs.SlackChannelName != nil {
+		c.Configuration["slack_channel_name"] = *cs.SlackChannelName
 	}
 }
 
@@ -145,7 +145,7 @@ func (ChannelWebHook) TableName() string {
 // is of type `ChannelTypeSlack`
 type ChannelSlack struct {
 	ID               int     `gorm:"column:id_channel;primary_key" json:"id"`
-	BaseURL          string  `gorm:"NOT NULL" json:"base_url"`
+	BaseURL          string  `gorm:"column:base_url;NOT NULL" json:"base_url"`
 	SlackChannelName *string `json:"slack_channel_name"`
 }
 

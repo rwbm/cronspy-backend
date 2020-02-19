@@ -14,6 +14,7 @@ type Service interface {
 	GetJob(id string) (job model.Job, err error)
 	SaveJob(job *model.Job) (err error)
 
+	GetChannels(idUser int) (channels []model.Channel, err error)
 	SaveChannel(c *model.Channel) (err error)
 	DeleteChannel(idChannel, idUser int) (err error)
 	UpdateChannel(idChannel, idUser int, channel *model.Channel) (err error)
@@ -28,6 +29,7 @@ type DB interface {
 	SaveJob(job *model.Job) (err error)
 
 	GetChannel(idChannel int, loadChannelConfig bool) (c model.Channel, err error)
+	GetChannels(idUser int, loadChannelConfig bool) (channels []model.Channel, err error)
 	SaveChannel(channel *model.Channel) (err error)
 	DeleteChannel(channel *model.Channel) (err error)
 	UpdateChannel(channel *model.Channel) (err error)
