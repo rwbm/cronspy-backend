@@ -45,10 +45,13 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 
 	// configure routes
 	jobs := e.Group("/jobs")
-
 	jobs.GET("", h.userJobsHandler, IsUserLoggedIn)       // get user jobs
 	jobs.POST("", h.createJobHandler, IsUserLoggedIn)     // create job
 	jobs.GET("/:job-id", h.getJobHandler, IsUserLoggedIn) // get job by id
+
+	channels := e.Group("/channels")
+	channels.POST("", h.createChannelHandler, IsUserLoggedIn) // create channel
+
 }
 
 func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
@@ -63,7 +66,7 @@ func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
 func (h *HTTP) userJobsHandler(c echo.Context) error {
 
 	// get user id
-	idUser, err := h.getUserID(c)
+	idUser, _, err := h.getUserID(c)
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ func (h *HTTP) userJobsHandler(c echo.Context) error {
 //
 func (h *HTTP) getJobHandler(c echo.Context) error {
 	// get user id
-	idUser, err := h.getUserID(c)
+	idUser, _, err := h.getUserID(c)
 	if err != nil {
 		return err
 	}
@@ -134,7 +137,7 @@ func (h *HTTP) getJobHandler(c echo.Context) error {
 //
 func (h *HTTP) createJobHandler(c echo.Context) error {
 	// get user id
-	idUser, err := h.getUserID(c)
+	idUser, _, err := h.getUserID(c)
 	if err != nil {
 		return err
 	}
@@ -150,28 +153,76 @@ func (h *HTTP) createJobHandler(c echo.Context) error {
 	}
 
 	payload.IDUser = idUser
-	if err := h.svc.CreateJob(payload); err != nil {
+	if err := h.svc.SaveJob(payload); err != nil {
 		return err
 	}
 
 	return c.JSON(http.StatusCreated, payload)
 }
 
-// get user id from request context (must be authenticated)
-func (h *HTTP) getUserID(c echo.Context) (id int, err error) {
+//
+// --- CREATE CHANNEL ---
+//
+func (h *HTTP) createChannelHandler(c echo.Context) error {
+	// get user id
+	idUser, emailAddress, err := h.getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	payload := new(model.Channel)
+	if err := c.Bind(payload); err != nil {
+		return err
+	}
+
+	// validate input
+	if fields := h.validateCreateChannelInput(payload); fields != "" {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMapWithFields(exception.CodeInvalidFields, "", fields))
+	}
+
+	// if no email address was provided, use the user's
+	if payload.Type == model.ChannelTypeEmail {
+		if payload.Configuration != nil {
+			if _, found := payload.Configuration["email_address"]; !found {
+				payload.Configuration["email_address"] = emailAddress
+			}
+		} else {
+			payload.Configuration = make(map[string]interface{})
+			payload.Configuration["email_address"] = emailAddress
+		}
+	}
+
+	payload.IDUser = idUser
+	if err := h.svc.SaveChannel(payload); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, payload)
+}
+
+//
+// --- private methods ---
+//
+
+// get user ID and email from request context (must be authenticated)
+func (h *HTTP) getUserID(c echo.Context) (id int, email string, err error) {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	idUser, ok := claims["id"].(float64)
+	idUser, okID := claims["id"].(float64)
+	emailStr, okEmail := claims["email"].(string)
 
-	if !ok {
+	if !okID || !okEmail {
 		err = echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
 		return
 	}
 
 	id = int(idUser)
+	email = emailStr
+
 	return
 }
 
+// validate create job fields
 func (h *HTTP) validateCreateJobInput(j *model.Job) (fields string) {
 	invalidFields := []string{}
 
@@ -189,6 +240,29 @@ func (h *HTTP) validateCreateJobInput(j *model.Job) (fields string) {
 
 	if j.Name == "" {
 		j.Name = DefaultJobName
+	}
+
+	if len(invalidFields) > 0 {
+		fields = strings.Join(invalidFields, ",")
+	}
+
+	return
+}
+
+// validate create channel fields
+func (h *HTTP) validateCreateChannelInput(c *model.Channel) (fields string) {
+	invalidFields := []string{}
+
+	if c.Type != model.ChannelTypeEmail && c.Type != model.ChannelTypeSlack && c.Type != model.ChannelTypeWebHook {
+		invalidFields = append(invalidFields, "type")
+	}
+
+	// configuration is mandatory for some types
+	switch c.Type {
+	case model.ChannelTypeSlack, model.ChannelTypeWebHook:
+		if c.Configuration == nil {
+			invalidFields = append(invalidFields, "configuration")
+		}
 	}
 
 	if len(invalidFields) > 0 {

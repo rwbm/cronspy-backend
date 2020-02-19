@@ -12,7 +12,9 @@ import (
 type Service interface {
 	GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model.Pagination, err error)
 	GetJob(id string) (job model.Job, err error)
-	CreateJob(job *model.Job) (err error)
+	SaveJob(job *model.Job) (err error)
+
+	SaveChannel(c *model.Channel) (err error)
 }
 
 // DB holds the functions for database access
@@ -21,7 +23,9 @@ type DB interface {
 
 	GetJobs(idUser int, count, offset int) (jobs []model.Job, p model.Pagination, err error)
 	GetJobByID(id string) (job model.Job, err error)
-	CreateJob(job *model.Job) (err error)
+	SaveJob(job *model.Job) (err error)
+
+	SaveChannel(channel *model.Channel) (err error)
 }
 
 // Job defines the module for user related operations
