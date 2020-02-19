@@ -50,7 +50,8 @@ func NewHTTP(svc job.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signin
 	jobs.GET("/:job-id", h.getJobHandler, IsUserLoggedIn) // get job by id
 
 	channels := e.Group("/channels")
-	channels.POST("", h.createChannelHandler, IsUserLoggedIn) // create channel
+	channels.POST("", h.createChannelHandler, IsUserLoggedIn)               // create channel
+	channels.DELETE("/:channel-id", h.deleteChannelHandler, IsUserLoggedIn) // delete channel by ID
 
 }
 
@@ -182,22 +183,54 @@ func (h *HTTP) createChannelHandler(c echo.Context) error {
 
 	// if no email address was provided, use the user's
 	if payload.Type == model.ChannelTypeEmail {
+		addEmail := true
 		if payload.Configuration != nil {
-			if _, found := payload.Configuration["email_address"]; !found {
-				payload.Configuration["email_address"] = emailAddress
+			if _, found := payload.Configuration["email"]; found {
+				addEmail = false
 			}
 		} else {
 			payload.Configuration = make(map[string]interface{})
-			payload.Configuration["email_address"] = emailAddress
+		}
+
+		if addEmail {
+			payload.Configuration["email"] = emailAddress
 		}
 	}
 
+	// save channel
 	payload.IDUser = idUser
 	if err := h.svc.SaveChannel(payload); err != nil {
 		return err
 	}
 
 	return c.JSON(http.StatusCreated, payload)
+}
+
+//
+// --- DELETE CHANNEL ---
+//
+func (h *HTTP) deleteChannelHandler(c echo.Context) error {
+
+	// get user id
+	idUser, _, err := h.getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	// get channel id from path
+	idChannelStr := c.Param("channel-id")
+	idChannel, errConv := strconv.Atoi(idChannelStr)
+	if errConv != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeInvalidEntityID, errConv.Error()))
+	}
+
+	// save channel
+	errDelete := h.svc.DeleteChannel(idChannel, idUser)
+	if errDelete != nil {
+		return errDelete
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 //

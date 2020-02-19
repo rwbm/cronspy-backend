@@ -15,6 +15,7 @@ import (
 
 // Config represents server specific config
 type Config struct {
+	ServiceName         string
 	Port                string
 	ReadTimeoutSeconds  int
 	WriteTimeoutSeconds int
@@ -27,8 +28,9 @@ func New(debug bool) *echo.Echo {
 	e := echo.New()
 
 	e.Use(
-		middleware.Logger(),  // default echo logger
-		middleware.Recover(), // recover from panics
+		middleware.Logger(),    // default echo logger
+		middleware.Recover(),   // recover from panics
+		middleware.RequestID(), // generate ID for requests --> TODO: chequear skips, por ej /health
 	)
 
 	// default validator
@@ -42,7 +44,7 @@ func New(debug bool) *echo.Echo {
 }
 
 // Start starts echo server
-func Start(e *echo.Echo, cfg *Config, log *log.Log, serviceName string) {
+func Start(e *echo.Echo, cfg *Config, log *log.Log) {
 
 	s := &http.Server{
 		Addr:         cfg.Port,
@@ -52,11 +54,11 @@ func Start(e *echo.Echo, cfg *Config, log *log.Log, serviceName string) {
 	s.SetKeepAlivesEnabled(false)
 
 	e.Debug = false
-	e.HideBanner = !cfg.Debug
-	e.HidePort = !cfg.Debug
+	e.HideBanner = true
+	e.HidePort = true
 
 	// start server
-	log.Info("starting "+serviceName, nil)
+	log.Info("starting "+cfg.ServiceName, nil)
 	go func() {
 		if err := e.StartServer(s); err != nil {
 			log.Error("error starting the server:", err, nil)
@@ -75,6 +77,6 @@ func Start(e *echo.Echo, cfg *Config, log *log.Log, serviceName string) {
 	if err := e.Shutdown(ctx); err != nil {
 		log.Error("error stopping server", err, nil)
 	} else {
-		log.Info(serviceName+" stoped!", nil)
+		log.Info(cfg.ServiceName+" stoped!", nil)
 	}
 }

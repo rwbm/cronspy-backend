@@ -1,6 +1,7 @@
 package db
 
 import (
+	"cronspy/backend/pkg/util/exception"
 	"cronspy/backend/pkg/util/model"
 	"fmt"
 
@@ -77,7 +78,7 @@ func (j *JobDB) GetChannels(idUser int, loadChannelConfig bool) (channels []mode
 					q = j.ds.Model(model.ChannelSlack{})
 
 				default:
-					err = fmt.Errorf("unsupported channel type '%s'", channels[i].Type)
+					err = fmt.Errorf("channel type '%s' not supported", channels[i].Type)
 					return
 				}
 
@@ -87,5 +88,90 @@ func (j *JobDB) GetChannels(idUser int, loadChannelConfig bool) (channels []mode
 			}
 		}
 	}
+	return
+}
+
+// GetChannel returns a channel by ID
+func (j *JobDB) GetChannel(idChannel int, loadChannelConfig bool) (c model.Channel, err error) {
+
+	err = j.ds.Model(c).Where("id_channel = ?", idChannel).First(&c).Error
+	if err == nil {
+		if loadChannelConfig {
+
+			switch c.Type {
+
+			case model.ChannelTypeEmail:
+				m := &model.ChannelEmail{}
+				q := j.ds.Model(m)
+				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+					c.SetChannelEmail(*m)
+				}
+
+			case model.ChannelTypeWebHook:
+				m := &model.ChannelWebHook{}
+				q := j.ds.Model(m)
+				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+					c.SetChannelWebHook(*m)
+				}
+
+			case model.ChannelTypeSlack:
+				m := &model.ChannelSlack{}
+				q := j.ds.Model(m)
+				if err = q.Where("id_channel = ?", c.ID).First(m).Error; err == nil {
+					c.SetChannelSlack(*m)
+				}
+
+			default:
+				err = fmt.Errorf("channel type '%s' not supported", c.Type)
+			}
+
+		}
+	} else {
+		if err == gorm.ErrRecordNotFound {
+			err = exception.ErrRecordNotFound
+		}
+	}
+
+	return
+}
+
+// DeleteChannel removes an existing channel and it's configuration from the database
+func (j *JobDB) DeleteChannel(channel *model.Channel) (err error) {
+
+	trx := j.ds.Begin()
+
+	// delete channel config
+	switch channel.Type {
+
+	case model.ChannelTypeEmail:
+		cfg := channel.GetChannelEmail()
+		cfg.ID = channel.ID
+		err = trx.Delete(&cfg).Error
+
+	case model.ChannelTypeSlack:
+		cfg := channel.GetChannelSlack()
+		cfg.ID = channel.ID
+		err = trx.Delete(&cfg).Error
+
+	case model.ChannelTypeWebHook:
+		cfg := channel.GetChannelWebHook()
+		cfg.ID = channel.ID
+		err = trx.Delete(&cfg).Error
+
+	}
+
+	if err != nil {
+		trx.Rollback()
+		return
+	}
+
+	// delete channel
+	if err = trx.Delete(channel).Error; err != nil {
+		trx.Rollback()
+		return
+	}
+
+	// commit changes if everything was OK
+	trx.Commit()
 	return
 }

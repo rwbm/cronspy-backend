@@ -40,6 +40,27 @@ func (c *Channel) GetChannelWebHook() (cwh ChannelWebHook) {
 	return
 }
 
+// SetChannelWebHook sets the configuration map with
+// the values of the model
+func (c *Channel) SetChannelWebHook(cwh ChannelWebHook) {
+	if c.Configuration == nil {
+		c.Configuration = make(map[string]interface{})
+	}
+
+	if cwh.BaseURL == "" {
+		c.Configuration["base_url"] = cwh.BaseURL
+	}
+	if cwh.PayloadType == "" {
+		c.Configuration["payload_type"] = cwh.PayloadType
+	}
+	if cwh.BasicAuthUsername != nil {
+		c.Configuration["basic_auth_username"] = *cwh.BasicAuthUsername
+	}
+	if cwh.BasicAuthPassword != nil {
+		c.Configuration["basic_auth_password"] = *cwh.BasicAuthPassword
+	}
+}
+
 // GetChannelSlack returns Configuration as `ChannelSlack`
 func (c *Channel) GetChannelSlack() (cs ChannelSlack) {
 	if c.Configuration != nil {
@@ -53,21 +74,48 @@ func (c *Channel) GetChannelSlack() (cs ChannelSlack) {
 	return
 }
 
+// SetChannelSlack sets the configuration map with
+// the values of the model
+func (c *Channel) SetChannelSlack(cwh ChannelSlack) {
+	if c.Configuration == nil {
+		c.Configuration = make(map[string]interface{})
+	}
+
+	if cwh.BaseURL == "" {
+		c.Configuration["base_url"] = cwh.BaseURL
+	}
+	if cwh.SlackChannelName != nil {
+		c.Configuration["slack_channel_name"] = *cwh.SlackChannelName
+	}
+}
+
 // GetChannelEmail returns Configuration as `ChannelEmail`
 func (c *Channel) GetChannelEmail() (ce ChannelEmail) {
 	if c.Configuration != nil {
-		if v, ok := c.Configuration["email_address"].(string); ok {
-			ce.Address = v
+		if v, ok := c.Configuration["email"].(string); ok {
+			ce.Email = v
 		}
 	}
 	return
 }
 
+// SetChannelEmail sets the configuration map with
+// the values of the model
+func (c *Channel) SetChannelEmail(cwh ChannelEmail) {
+	if c.Configuration == nil {
+		c.Configuration = make(map[string]interface{})
+	}
+
+	if cwh.Email != "" {
+		c.Configuration["email"] = cwh.Email
+	}
+}
+
 // ChannelEmail contains the configuration when a channel
 // is of type `ChannelEmail`
 type ChannelEmail struct {
-	ID      int    `gorm:"column:id_channel;primary_key" json:"-"`
-	Address string `gorm:"NOT NULL" json:"email_address"`
+	ID    int    `gorm:"column:id_channel;primary_key" json:"-"`
+	Email string `gorm:"NOT NULL" json:"email"`
 }
 
 // TableName returns the table name for the model
