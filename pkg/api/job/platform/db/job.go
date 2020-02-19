@@ -10,7 +10,7 @@ import (
 )
 
 // GetJobs returns the list of jobs for a user
-func (c *JobDB) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model.Pagination, err error) {
+func (j *JobDB) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model.Pagination, err error) {
 
 	offset := 0
 	if page > 1 {
@@ -19,7 +19,7 @@ func (c *JobDB) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p mod
 
 	// get total records
 	totalRecords := 0
-	if err = c.ds.Model(model.Job{}).Where("id_user = ?", idUser).Count(&totalRecords).Error; err != nil {
+	if err = j.ds.Model(model.Job{}).Where("id_user = ?", idUser).Count(&totalRecords).Error; err != nil {
 		return
 	}
 
@@ -29,7 +29,7 @@ func (c *JobDB) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p mod
 	}
 
 	// get jobs
-	q := c.ds.Model(model.Job{}).Where("id_user = ?", idUser).Order("date_created asc")
+	q := j.ds.Model(model.Job{}).Where("id_user = ?", idUser).Order("date_created asc")
 	q = q.Offset(offset).Limit(pageSize)
 	err = q.Find(&jobs).Error
 
@@ -43,15 +43,15 @@ func (c *JobDB) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p mod
 }
 
 // GetJobByID return a job data by the ID
-func (c *JobDB) GetJobByID(id string) (job model.Job, err error) {
-	if err = c.ds.Model(model.Job{}).Where("id_job = ?", id).First(&job).Error; err == gorm.ErrRecordNotFound {
+func (j *JobDB) GetJobByID(id string) (job model.Job, err error) {
+	if err = j.ds.Model(model.Job{}).Where("id_job = ?", id).First(&job).Error; err == gorm.ErrRecordNotFound {
 		err = exception.ErrRecordNotFound
 	}
 	return
 }
 
-// CreateJob registers a new job in the database
-func (c *JobDB) CreateJob(job *model.Job) (err error) {
+// SaveJob saves a job in the database
+func (j *JobDB) SaveJob(job *model.Job) (err error) {
 
 	if job != nil {
 		job.DateCreated = time.Now()
@@ -62,6 +62,6 @@ func (c *JobDB) CreateJob(job *model.Job) (err error) {
 		return errors.New("invalid entity")
 	}
 
-	err = c.ds.Create(job).Error
+	err = j.ds.Save(job).Error
 	return
 }

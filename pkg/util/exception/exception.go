@@ -23,6 +23,7 @@ const (
 	CodeInvalidPage               = "invalid_page"
 	CodeInvalidPageSize           = "invalid_page_size"
 	CodeInvalidFields             = "invalid_fields"
+	CodeInvalidEntityID           = "invalid_entity_id"
 )
 
 var (
@@ -30,7 +31,7 @@ var (
 	messages = map[string]string{
 		CodeNotFound:                     "not found",
 		CodeInternalServerError:          "internal server error ocurred",
-		CodeUnauthorized:                 "unauthorized request",
+		CodeUnauthorized:                 "requested to access an unauthorized resource",
 		CodeUserExists:                   "user already exists",
 		ErrInvalidEmailAddress.Error():   "invalid email address",
 		ErrInvalidPasswordFormat.Error(): "invalid password format",
@@ -42,14 +43,15 @@ var (
 		CodeInvalidPage:                  "invalid page value",
 		CodeInvalidPageSize:              "invalid page size value",
 		CodeInvalidFields:                "invalid or missing required fields",
+		CodeInvalidEntityID:              "the provided entity ID is invalid or malformed",
 	}
 )
 
 // GetErrorMap returns a map with the provided error code and associated message;
 // it's useful for building HTTP error responses
-func GetErrorMap(code, msg string) (m map[string]string) {
+func GetErrorMap(code, msg string) (m map[string]interface{}) {
 	if code != "" || msg != "" {
-		m = make(map[string]string)
+		m = make(map[string]interface{})
 
 		if code != "" {
 			m["code"] = code
@@ -70,9 +72,9 @@ func GetErrorMap(code, msg string) (m map[string]string) {
 
 // GetErrorMapWithFields returns a map with the provided error code and associated message;
 // it also has the chance to set `fields`
-func GetErrorMapWithFields(code, msg, fields string) (m map[string]string) {
+func GetErrorMapWithFields(code, msg, fields string) (m map[string]interface{}) {
 	if code != "" || msg != "" {
-		m = make(map[string]string)
+		m = make(map[string]interface{})
 
 		if code != "" {
 			m["code"] = code

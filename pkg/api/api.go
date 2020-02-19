@@ -43,13 +43,13 @@ func Start(cfg *config.Configuration) (err error) {
 	// start HTTP server
 	server.Start(e,
 		&server.Config{
+			ServiceName:         cfg.Server.Name,
 			Port:                cfg.Server.Port,
 			ReadTimeoutSeconds:  cfg.Server.ReadTimeout,
 			WriteTimeoutSeconds: cfg.Server.WriteTimeout,
 			Debug:               cfg.Server.Debug,
 		},
-		logger,
-		cfg.Server.Name)
+		logger)
 
 	return
 }

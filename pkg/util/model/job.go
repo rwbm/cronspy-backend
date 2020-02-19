@@ -33,7 +33,6 @@ type Job struct {
 	CronExpression          *string   `json:"cron_expression"`
 	CronExpressionTimezone  *string   `json:"cron_expression_timezone"`
 	DetectedIntervalMinutes *int      `json:"-"`
-	// Alerts                  []JobAlert `gorm:"foreignkey:ID" json:"alerts"`
 }
 
 // TableName returns the table name for the model
