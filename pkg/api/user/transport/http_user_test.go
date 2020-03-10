@@ -9,14 +9,21 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
+
+type loginResp struct {
+	User        model.User `json:"user"`
+	AccessToken string     `json:"access_token"`
+}
 
 // ****************************************************
 //
@@ -29,9 +36,17 @@ func getDBMock(mockData bool) (db *DBMock) {
 
 	if mockData {
 		// load some users
-		db.RegisterUser(&model.User{Email: "test.user.a1@cronspy.com", Name: "Test User A1", Password: "asdasd"})
-		db.RegisterUser(&model.User{Email: "test.user.a2@cronspy.com", Name: "Test User A2", Password: "asdasd"})
-		db.RegisterUser(&model.User{Email: "test.user.a3@cronspy.com", Name: "Test User A3", Password: "asdasd"})
+		u1 := &model.User{Email: "test.user.a1@cronspy.com", Name: "Test User A1", Password: "abcd1234", DateCreated: time.Now(), DateUpdated: time.Now(), AccountType: model.AccountTypeFree}
+		u1.HashPassword()
+		db.RegisterUser(u1)
+
+		u2 := &model.User{Email: "test.user.a2@cronspy.com", Name: "Test User A2", Password: "abcd1234", DateCreated: time.Now(), DateUpdated: time.Now(), AccountType: model.AccountTypeFree}
+		u2.HashPassword()
+		db.RegisterUser(u2)
+
+		u3 := &model.User{Email: "test.user.a3@cronspy.com", Name: "Test User A3", Password: "abcd1234", DateCreated: time.Now(), DateUpdated: time.Now(), AccountType: model.AccountTypeFree}
+		u3.HashPassword()
+		db.RegisterUser(u3)
 	}
 
 	return
@@ -135,6 +150,9 @@ func getHTTPHandler(e *echo.Echo, mockData bool) (h HTTP) {
 	return
 }
 
+//
+// ============== USER REGISTRATION ==============
+
 func TestUserRegistrationOK(t *testing.T) {
 
 	// define user to test
@@ -163,9 +181,14 @@ func TestUserRegistrationOK(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 
-		// TODO: capturar JSON y validar datos retornados
+		// validate returned data
+		u := new(model.User)
 
-		// assert.Equal(t, userJSON, rec.Body.String())
+		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), u)) {
+			assert.NotEqual(t, 0, u.ID)
+			assert.Equal(t, "test.user.1@cronspay.com", u.Email)
+			assert.Equal(t, "Test User 1", u.Name)
+		}
 	}
 }
 
@@ -248,6 +271,101 @@ func TestUserRegistrationExsitingUser(t *testing.T) {
 
 	// call handler
 	err := handler.userRegisterHandler(c)
+
+	// assertions
+	assert.Error(t, err)
+}
+
+//
+// ============== USER LOGIN ==============
+
+func TestUserLoginOK(t *testing.T) {
+
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	payload := `{ "username":"test.user.a1@cronspy.com", "password":"abcd1234" }`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	err := handler.userLoginHandler(c)
+
+	// assertions
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		// validate returned data
+		repBody := loginResp{}
+		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &repBody)) {
+			assert.Equal(t, "Test User A1", repBody.User.Name)
+		}
+	}
+}
+
+func TestUserLoginWrongPassword(t *testing.T) {
+
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	payload := `{ "username":"test.user.a2@cronspy.com", "password":"wrong-password" }`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	err := handler.userLoginHandler(c)
+
+	// assertions
+	assert.Error(t, err)
+}
+
+func TestUserLoginInvalidEmail(t *testing.T) {
+
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	payload := `{ "username":"test.user.a2@invalid-host", "password":"abcd1234" }`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	err := handler.userLoginHandler(c)
+
+	// assertions
+	assert.Error(t, err)
+}
+
+func TestUserLoginInvalidPassword(t *testing.T) {
+
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	payload := `{ "username":"test.user.a2@cronspy.com", "password":"bad" }`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	err := handler.userLoginHandler(c)
 
 	// assertions
 	assert.Error(t, err)
