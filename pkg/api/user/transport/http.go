@@ -26,8 +26,8 @@ type HTTP struct {
 }
 
 // NewHTTP creates new http service to handle request to /user
-func NewHTTP(svc user.Service, jwtSigningKey string, jwtSigningMethod *jwt.SigningMethodHMAC, e *echo.Echo) {
-	h := HTTP{
+func NewHTTP(svc user.Service, jwtSigningKey string, jwtSigningMethod *jwt.SigningMethodHMAC, e *echo.Echo) (h HTTP) {
+	h = HTTP{
 		svc:              svc,
 		jwtSigningKey:    jwtSigningKey,
 		jwtSigningMethod: jwtSigningMethod,
@@ -48,6 +48,8 @@ func NewHTTP(svc user.Service, jwtSigningKey string, jwtSigningMethod *jwt.Signi
 
 	// --- Auth required ---
 	user.PUT("/changePassword", h.userChangePasswordHandler, IsUserLoggedIn)
+
+	return
 }
 
 //

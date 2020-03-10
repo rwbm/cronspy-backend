@@ -3,6 +3,7 @@ package user
 import (
 	"cronspy/backend/pkg/util/exception"
 	"cronspy/backend/pkg/util/model"
+	"errors"
 	"net/http"
 	"time"
 
@@ -65,7 +66,7 @@ func (u *User) Login(username, password string) (user model.User, err error) {
 		}
 
 	} else {
-		if err == exception.ErrRecordNotFound {
+		if errors.Is(err, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 		} else {
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
@@ -94,7 +95,7 @@ func (u *User) ChangePassword(idUser int, oldPassword, newPassword string) (err 
 		}
 
 	} else {
-		if err == exception.ErrRecordNotFound {
+		if errors.Is(err, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusUnauthorized, exception.GetErrorMap(exception.CodeInvalidPassword, ""))
 		} else {
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
@@ -214,7 +215,7 @@ func (u *User) ValidateResetPassword(resetID string) (err error) {
 	// find password reset token
 	reset, errGetReset := u.database.GetPasswordResetByID(resetID, nil)
 	if errGetReset != nil {
-		if errGetReset == exception.ErrRecordNotFound {
+		if errors.Is(errGetReset, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
 		} else {
 			u.logger.Error("error loading password reset from database", errGetReset, map[string]interface{}{"id_reset": resetID})
