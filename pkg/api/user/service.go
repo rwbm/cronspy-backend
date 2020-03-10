@@ -58,6 +58,9 @@ func new(database DB, l *log.Log, tokenExpiration int) *User {
 }
 
 // Initialize initializes tax application service
-func Initialize(ds *gorm.DB, l *log.Log, tokenExpiration int) *User {
-	return new(db.NewUserDB(ds), l, tokenExpiration)
+func Initialize(ds *gorm.DB, dbService DB, l *log.Log, tokenExpiration int) *User {
+	if dbService == nil {
+		dbService = db.NewUserDB(ds)
+	}
+	return new(dbService, l, tokenExpiration)
 }

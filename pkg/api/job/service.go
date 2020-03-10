@@ -50,6 +50,9 @@ func new(database DB, l *log.Log) *Job {
 }
 
 // Initialize initializes tax application service
-func Initialize(ds *gorm.DB, l *log.Log) *Job {
-	return new(db.NewJobDB(ds), l)
+func Initialize(ds *gorm.DB, dbService DB, l *log.Log) *Job {
+	if dbService == nil {
+		dbService = db.NewJobDB(ds)
+	}
+	return new(dbService, l)
 }

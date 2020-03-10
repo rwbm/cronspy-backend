@@ -35,8 +35,10 @@ func Start(cfg *config.Configuration) (err error) {
 
 	// +++++++++++ SERVICES ++++++++++++
 	//
-	ut.NewHTTP(user.Initialize(ds, logger, cfg.Server.TokenExpiration), jwtSigningKey, jwtSigningMethod, e)
-	jt.NewHTTP(job.Initialize(ds, logger), jwtSigningKey, jwtSigningMethod, e)
+
+	ut.NewHTTP(user.Initialize(ds, nil, logger, cfg.Server.TokenExpiration), jwtSigningKey, jwtSigningMethod, e)
+	jt.NewHTTP(job.Initialize(ds, nil, logger), jwtSigningKey, jwtSigningMethod, e)
+
 	//
 	// +++++++++++++++++++++++++++++++++
 
