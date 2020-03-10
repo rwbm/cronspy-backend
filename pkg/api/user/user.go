@@ -26,7 +26,7 @@ func (u *User) RegisterUser(ec echo.Context, user *model.User) (err error) {
 		err = echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeUserExists, ""))
 
 	} else {
-		if errGet != exception.ErrRecordNotFound {
+		if !errors.Is(errGet, exception.ErrRecordNotFound) {
 			u.logger.Error("error loading user by email", errGet, map[string]interface{}{"email": user.Email})
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errGet.Error()))
 			return
@@ -36,15 +36,13 @@ func (u *User) RegisterUser(ec echo.Context, user *model.User) (err error) {
 		user.DateCreated = time.Now()
 		user.DateUpdated = time.Now()
 		user.HashPassword()
-		user.AccountType = model.AccountTypeFree // register users are always FREE
+		user.AccountType = model.AccountTypeFree // new users are always FREE
 
 		if _, errSave := u.database.RegisterUser(user); errSave != nil {
 			u.logger.Error("error creating user", errSave, nil)
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, errSave.Error()))
 		}
 
-		// clean passwords for security
-		user.CleanPassword()
 	}
 
 	return
@@ -112,7 +110,8 @@ func (u *User) ChangePasswordWithReset(resetToken, newPassword string) (err erro
 	// load token from DB
 	pr, errGetToken := u.database.GetPasswordResetByID(resetToken, nil)
 	if errGetToken != nil {
-		if errGetToken == exception.ErrRecordNotFound {
+
+		if errors.Is(errGetToken, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
 		} else {
 			u.logger.Error("error loading password reset", errGetToken, map[string]interface{}{"token": resetToken})
@@ -165,7 +164,8 @@ func (u *User) ResetPassword(email string) (resetID string, err error) {
 	// check if users exists
 	user, errGetUser := u.database.GetUserByEmail(email)
 	if errGetUser != nil {
-		if errGetUser == exception.ErrRecordNotFound {
+
+		if errors.Is(errGetUser, exception.ErrRecordNotFound) {
 			u.logger.Warn("a password reset operation was sent for a NON existing user", map[string]interface{}{"email": email})
 			err = echo.NewHTTPError(http.StatusBadRequest, exception.GetErrorMap(exception.CodeUnknownUser, ""))
 
@@ -215,6 +215,7 @@ func (u *User) ValidateResetPassword(resetID string) (err error) {
 	// find password reset token
 	reset, errGetReset := u.database.GetPasswordResetByID(resetID, nil)
 	if errGetReset != nil {
+
 		if errors.Is(errGetReset, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
 		} else {
@@ -243,7 +244,7 @@ func (u *User) getOrCreatePasswordReset(idUser int) (r model.PasswordReset, ok b
 
 	r, err = u.database.GetPasswordResetByUser(idUser)
 	if err != nil {
-		if err == exception.ErrRecordNotFound {
+		if errors.Is(err, exception.ErrRecordNotFound) {
 			// create a new one
 			r.IDUser = idUser
 			r.DateCreated = time.Now()

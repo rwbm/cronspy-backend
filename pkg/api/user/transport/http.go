@@ -74,6 +74,9 @@ func (h *HTTP) userRegisterHandler(c echo.Context) error {
 		return err
 	}
 
+	// clean passwords for security
+	user.CleanPassword()
+
 	return c.JSON(http.StatusCreated, user)
 }
 
