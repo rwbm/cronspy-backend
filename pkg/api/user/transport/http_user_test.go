@@ -7,6 +7,7 @@ import (
 	"cronspy/backend/pkg/util/log"
 	"cronspy/backend/pkg/util/model"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -153,21 +154,14 @@ func getHTTPHandler(e *echo.Echo, mockData bool) (h HTTP) {
 //
 // ============== USER REGISTRATION ==============
 
-func TestUserRegistrationOK(t *testing.T) {
-
-	// define user to test
-	u := model.User{
-		Email:    "test.user.1@cronspay.com",
-		Name:     "Test User 1",
-		Password: "abcd1234",
-	}
-	uJSON, _ := json.Marshal(u)
-
+func runUserRegistration(user model.User) (resp model.User, err error) {
 	// create server and handler
 	e := echo.New()
 	handler := getHTTPHandler(e, true)
 
 	// define request
+	uJSON, _ := json.Marshal(user)
+
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(uJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
@@ -175,102 +169,69 @@ func TestUserRegistrationOK(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// call handler
-	err := handler.userRegisterHandler(c)
+	if err = handler.userRegisterHandler(c); err == nil {
+		err = json.Unmarshal(rec.Body.Bytes(), &resp)
+	}
+
+	return
+}
+
+func TestUserRegistrationOK(t *testing.T) {
+	// define user to test
+	u := model.User{
+		Email:    "test.user.1@cronspay.com",
+		Name:     "Test User 1",
+		Password: "abcd1234",
+	}
+
+	newUser, err := runUserRegistration(u)
 
 	// assertions
 	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusCreated, rec.Code)
-
 		// validate returned data
-		u := new(model.User)
-
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), u)) {
-			assert.NotEqual(t, 0, u.ID)
-			assert.Equal(t, "test.user.1@cronspay.com", u.Email)
-			assert.Equal(t, "Test User 1", u.Name)
-		}
+		assert.NotEqual(t, 0, newUser.ID)
+		assert.Equal(t, "test.user.1@cronspay.com", newUser.Email)
+		assert.Equal(t, "Test User 1", newUser.Name)
 	}
 }
 
 func TestUserRegistrationInvalidEmail(t *testing.T) {
-
 	// define user to test
 	u := model.User{
 		Email:    "test.user.1@invalidaddress",
 		Name:     "Test User 1",
 		Password: "abcd1234",
 	}
-	uJSON, _ := json.Marshal(u)
 
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, false)
-
-	// define request
-	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(uJSON))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userRegisterHandler(c)
+	_, err := runUserRegistration(u)
 
 	// assertions
 	assert.Error(t, err)
 }
 
 func TestUserRegistrationInvalidPassword(t *testing.T) {
-
 	// define user to test
 	u := model.User{
 		Email:    "test.user.1@cronspay.com",
 		Name:     "Test User 1",
-		Password: "abc123",
+		Password: "bad",
 	}
-	uJSON, _ := json.Marshal(u)
 
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, false)
-
-	// define request
-	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(uJSON))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userRegisterHandler(c)
+	_, err := runUserRegistration(u)
 
 	// assertions
 	assert.Error(t, err)
 }
 
-func TestUserRegistrationExsitingUser(t *testing.T) {
-
+func TestUserRegistrationExistingUser(t *testing.T) {
 	// define user to test
 	u := model.User{
 		Email:    "test.user.a1@cronspy.com",
 		Name:     "Test User 1",
-		Password: "abc123",
+		Password: "anotherpassword",
 	}
-	uJSON, _ := json.Marshal(u)
 
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, false)
-
-	// define request
-	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(uJSON))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userRegisterHandler(c)
+	_, err := runUserRegistration(u)
 
 	// assertions
 	assert.Error(t, err)
@@ -279,14 +240,13 @@ func TestUserRegistrationExsitingUser(t *testing.T) {
 //
 // ============== USER LOGIN ==============
 
-func TestUserLoginOK(t *testing.T) {
-
+func runUserLogin(username, password string) (resp loginResp, err error) {
 	// create server and handler
 	e := echo.New()
 	handler := getHTTPHandler(e, true)
 
 	// define request
-	payload := `{ "username":"test.user.a1@cronspy.com", "password":"abcd1234" }`
+	payload := fmt.Sprintf(`{ "username":"%s", "password":"%s" }`, username, password)
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
@@ -294,78 +254,38 @@ func TestUserLoginOK(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// call handler
-	err := handler.userLoginHandler(c)
+	if err = handler.userLoginHandler(c); err == nil {
+		err = json.Unmarshal(rec.Body.Bytes(), &resp)
+	}
+
+	return
+}
+
+func TestUserLoginOK(t *testing.T) {
+	r, err := runUserLogin("test.user.a1@cronspy.com", "abcd1234")
 
 	// assertions
 	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-
-		// validate returned data
-		repBody := loginResp{}
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &repBody)) {
-			assert.Equal(t, "Test User A1", repBody.User.Name)
-		}
+		assert.Equal(t, "Test User A1", r.User.Name)
 	}
 }
 
 func TestUserLoginWrongPassword(t *testing.T) {
-
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, true)
-
-	// define request
-	payload := `{ "username":"test.user.a2@cronspy.com", "password":"wrong-password" }`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userLoginHandler(c)
+	_, err := runUserLogin("test.user.a1@cronspy.com", "wrong-password")
 
 	// assertions
 	assert.Error(t, err)
 }
 
 func TestUserLoginInvalidEmail(t *testing.T) {
-
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, true)
-
-	// define request
-	payload := `{ "username":"test.user.a2@invalid-host", "password":"abcd1234" }`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userLoginHandler(c)
+	_, err := runUserLogin("test.user.a1@invalid-host", "wrong-password")
 
 	// assertions
 	assert.Error(t, err)
 }
 
 func TestUserLoginInvalidPassword(t *testing.T) {
-
-	// create server and handler
-	e := echo.New()
-	handler := getHTTPHandler(e, true)
-
-	// define request
-	payload := `{ "username":"test.user.a2@cronspy.com", "password":"bad" }`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// call handler
-	err := handler.userLoginHandler(c)
+	_, err := runUserLogin("test.user.a1@cronspy.com", "bad")
 
 	// assertions
 	assert.Error(t, err)
