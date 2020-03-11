@@ -11,7 +11,7 @@ import (
 // Service holds the functions delcared in the service interface
 type Service interface {
 	GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model.Pagination, err error)
-	GetJob(id string) (job model.Job, err error)
+	GetJob(id string, idUser int) (job model.Job, err error)
 	SaveJob(job *model.Job) (err error)
 
 	GetChannels(idUser int) (channels []model.Channel, err error)

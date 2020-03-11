@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -54,12 +55,11 @@ func getDBMock(mockData bool) (db *DBMock) {
 }
 
 type DBMock struct {
-	users         []model.User
-	passwordReset []model.PasswordReset
+	users          []model.User
+	passwordResets []model.PasswordReset
 
-	currentUserID          int
-	currentPasswordResetID int
-	mux                    sync.Mutex
+	currentUserID int
+	mux           sync.Mutex
 }
 
 func (db *DBMock) Transaction() *gorm.DB {
@@ -113,30 +113,92 @@ func (db *DBMock) UpdateUser(user *model.User, fields map[string]interface{}) (e
 }
 
 func (db *DBMock) CreatePasswordReset(reset *model.PasswordReset) (err error) {
+	reset.ID = uuid.New().String()
+	db.passwordResets = append(db.passwordResets, *reset)
 	return
 }
 
 func (db *DBMock) GetPasswordResetByID(id string, trx *gorm.DB) (reset model.PasswordReset, err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].ID == id {
+				reset = db.passwordResets[i]
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 
 func (db *DBMock) GetPasswordResetByUser(idUser int) (reset model.PasswordReset, err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].IDUser == idUser {
+				reset = db.passwordResets[i]
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 
 func (db *DBMock) DeletePasswordReset(id string) (err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].ID == id {
+				db.passwordResets = append(db.passwordResets[:i], db.passwordResets[i+1:]...)
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 
 func (db *DBMock) UpdatePasswordResetCount(id string, countValue int) (err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].ID == id {
+				db.passwordResets[i].LinkSentCount = countValue
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 
 func (db *DBMock) ValidatePasswordReset(id string) (err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].ID == id {
+				db.passwordResets[i].Validated = true
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 
 func (db *DBMock) MarkPasswordResetAsUsed(id string, trx *gorm.DB) (err error) {
+	if len(db.passwordResets) > 0 {
+		for i := range db.passwordResets {
+			if db.passwordResets[i].ID == id {
+				db.passwordResets[i].Used = true
+				return
+			}
+		}
+	}
+
+	err = exception.ErrRecordNotFound
 	return
 }
 

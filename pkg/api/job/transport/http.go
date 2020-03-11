@@ -123,13 +123,9 @@ func (h *HTTP) getJobHandler(c echo.Context) error {
 	}
 
 	// get jobs
-	job, err := h.svc.GetJob(c.Param("job-id"))
+	job, err := h.svc.GetJob(c.Param("job-id"), idUser)
 	if err != nil {
 		return err
-	}
-
-	if job.IDUser != int(idUser) {
-		return echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
 	}
 
 	return c.JSON(http.StatusOK, job)

@@ -21,7 +21,7 @@ func (j *Job) GetJobs(idUser int, pageSize, page int) (jobs []model.Job, p model
 }
 
 // GetJob return a job data by the ID
-func (j *Job) GetJob(id string) (job model.Job, err error) {
+func (j *Job) GetJob(id string, idUser int) (job model.Job, err error) {
 	job, err = j.database.GetJobByID(id)
 	if err != nil {
 		if err == exception.ErrRecordNotFound {
@@ -30,7 +30,13 @@ func (j *Job) GetJob(id string) (job model.Job, err error) {
 			j.logger.Error("error loading job", err, map[string]interface{}{"id_job": id})
 			err = echo.NewHTTPError(http.StatusInternalServerError, exception.GetErrorMap(exception.CodeInternalServerError, err.Error()))
 		}
+	} else {
+		// check user owns the job
+		if job.IDUser != idUser {
+			err = echo.NewHTTPError(http.StatusForbidden, exception.GetErrorMap(exception.CodeUnauthorized, ""))
+		}
 	}
+
 	return
 }
 
