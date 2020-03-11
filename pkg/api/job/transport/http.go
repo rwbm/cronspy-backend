@@ -69,7 +69,7 @@ func (h *HTTP) getJWTConfig() (jwtCfg middleware.JWTConfig) {
 func (h *HTTP) userJobsHandler(c echo.Context) error {
 
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -104,12 +104,11 @@ func (h *HTTP) userJobsHandler(c echo.Context) error {
 		return err
 	}
 
-	type response struct {
-		Jobs       []model.Job      `json:"jobs,omitempty"`
-		Pagination model.Pagination `json:"pagination,omitempty"`
-	}
+	resp := make(map[string]interface{})
+	resp["jobs"] = jobs
+	resp["pagination"] = p
 
-	return c.JSON(http.StatusOK, response{Jobs: jobs, Pagination: p})
+	return c.JSON(http.StatusOK, resp)
 }
 
 //
@@ -117,7 +116,7 @@ func (h *HTTP) userJobsHandler(c echo.Context) error {
 //
 func (h *HTTP) getJobHandler(c echo.Context) error {
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -136,7 +135,7 @@ func (h *HTTP) getJobHandler(c echo.Context) error {
 //
 func (h *HTTP) createJobHandler(c echo.Context) error {
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -164,7 +163,7 @@ func (h *HTTP) createJobHandler(c echo.Context) error {
 //
 func (h *HTTP) getChannelsHandler(c echo.Context) error {
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -174,12 +173,10 @@ func (h *HTTP) getChannelsHandler(c echo.Context) error {
 		return err
 	}
 
-	// format response
-	type response struct {
-		Channels []model.Channel `json:"channels"`
-	}
+	resp := make(map[string]interface{})
+	resp["channels"] = channels
 
-	return c.JSON(http.StatusOK, response{Channels: channels})
+	return c.JSON(http.StatusOK, resp)
 }
 
 //
@@ -187,7 +184,7 @@ func (h *HTTP) getChannelsHandler(c echo.Context) error {
 //
 func (h *HTTP) createChannelHandler(c echo.Context) error {
 	// get user id
-	idUser, emailAddress, err := h.getUserID(c)
+	idUser, emailAddress, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -233,7 +230,7 @@ func (h *HTTP) createChannelHandler(c echo.Context) error {
 func (h *HTTP) deleteChannelHandler(c echo.Context) error {
 
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -260,7 +257,7 @@ func (h *HTTP) deleteChannelHandler(c echo.Context) error {
 func (h *HTTP) updateChannelHandler(c echo.Context) error {
 
 	// get user id
-	idUser, _, err := h.getUserID(c)
+	idUser, _, err := h.getUserData(c)
 	if err != nil {
 		return err
 	}
@@ -291,7 +288,7 @@ func (h *HTTP) updateChannelHandler(c echo.Context) error {
 //
 
 // get user ID and email from request context (must be authenticated)
-func (h *HTTP) getUserID(c echo.Context) (id int, email string, err error) {
+func (h *HTTP) getUserData(c echo.Context) (id int, email string, err error) {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
 	idUser, okID := claims["id"].(float64)
