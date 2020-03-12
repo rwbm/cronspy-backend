@@ -22,10 +22,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// helper types
+
 type loginResp struct {
 	User        model.User `json:"user"`
 	AccessToken string     `json:"access_token"`
 }
+
+var (
+	passwordRestDummyID1, passwordRestDummyID2 string
+)
 
 // ****************************************************
 //
@@ -49,6 +55,15 @@ func getDBMock(mockData bool) (db *DBMock) {
 		u3 := &model.User{Email: "test.user.a3@cronspy.com", Name: "Test User A3", Password: "abcd1234", DateCreated: time.Now(), DateUpdated: time.Now(), AccountType: model.AccountTypeFree}
 		u3.HashPassword()
 		db.RegisterUser(u3)
+
+		// password resets
+		pr1 := &model.PasswordReset{ID: "dummy-uuid-1", IDUser: 2, LinkSentCount: 1, DateCreated: time.Now(), DateUpdated: time.Now()}
+		db.CreatePasswordReset(pr1)
+		passwordRestDummyID1 = pr1.ID
+
+		pr2 := &model.PasswordReset{ID: "dummy-uuid-2", IDUser: 3, LinkSentCount: 1, DateCreated: time.Now().Add(-1 * time.Hour), DateUpdated: time.Now().Add(-1 * time.Hour)}
+		db.CreatePasswordReset(pr2)
+		passwordRestDummyID2 = pr2.ID
 	}
 
 	return
@@ -351,4 +366,64 @@ func TestUserLoginInvalidPassword(t *testing.T) {
 
 	// assertions
 	assert.Error(t, err)
+}
+
+//
+// ============== PASSWORD RESET ==============
+
+func runPasswordReset(email string) (id string, err error) {
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	payload := fmt.Sprintf(`{ "email":"%s" }`, email)
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	if err = handler.userPasswordResetRequestHandler(c); err == nil {
+		resp := make(map[string]interface{})
+		if err = json.Unmarshal(rec.Body.Bytes(), &resp); err == nil {
+			id = resp["id"].(string)
+		}
+
+	}
+
+	return
+}
+
+func TestPasswordResetOK(t *testing.T) {
+	id, err := runPasswordReset("test.user.a1@cronspy.com")
+
+	// assertions
+	if assert.NoError(t, err) {
+		assert.NotEmpty(t, id)
+	}
+}
+
+func TestPasswordResetInvalidUser(t *testing.T) {
+	_, err := runPasswordReset("unknown-user@cronspy.com")
+
+	// assertions
+	assert.Error(t, err)
+}
+
+func TestPasswordResetExistingError(t *testing.T) {
+	_, err := runPasswordReset("test.user.a2@cronspy.com")
+
+	// assertions
+	assert.Error(t, err)
+}
+
+func TestPasswordResetExistingOK(t *testing.T) {
+	id, err := runPasswordReset("test.user.a3@cronspy.com")
+
+	// assertions
+	if assert.NoError(t, err) {
+		assert.Equal(t, passwordRestDummyID2, id)
+	}
 }

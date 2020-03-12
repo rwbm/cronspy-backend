@@ -128,12 +128,11 @@ func (h *HTTP) userLoginHandler(c echo.Context) error {
 //
 func (h *HTTP) userPasswordResetRequestHandler(c echo.Context) error {
 
-	type requestResponse struct {
+	type request struct {
 		Email string `json:"email,omitempty"`
-		ID    string `json:"id,omitempty"`
 	}
 
-	payload := new(requestResponse)
+	payload := new(request)
 	if err := c.Bind(payload); err != nil {
 		return err
 	}
@@ -143,7 +142,10 @@ func (h *HTTP) userPasswordResetRequestHandler(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, requestResponse{ID: resetID})
+	resp := make(map[string]interface{})
+	resp["id"] = resetID
+
+	return c.JSON(http.StatusCreated, resp)
 }
 
 //
