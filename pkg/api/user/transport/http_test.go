@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -143,6 +144,8 @@ func (db *DBMock) GetPasswordResetByID(id string, trx *gorm.DB) (reset model.Pas
 		}
 	}
 
+	println("retornando error")
+
 	err = exception.ErrRecordNotFound
 	return
 }
@@ -222,7 +225,7 @@ func getHTTPHandler(e *echo.Echo, mockData bool) (h HTTP) {
 
 	mockDB := getDBMock(mockData)
 	logger := log.New()
-	userService := user.Initialize(nil, mockDB, logger, 5)
+	userService := user.Initialize(nil, mockDB, logger, 5, true)
 
 	h = NewHTTP(userService, "myTestingKey", jwt.SigningMethodHS512, e)
 	return
@@ -426,4 +429,40 @@ func TestPasswordResetExistingOK(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, passwordRestDummyID2, id)
 	}
+}
+
+//
+// ============== PASSWORD RESET VALIADTE ==============
+
+func runPasswordResetValidate(token string) (err error) {
+	// create server and handler
+	e := echo.New()
+	handler := getHTTPHandler(e, true)
+
+	// define request
+	q := make(url.Values)
+	q.Set("token", token)
+
+	req := httptest.NewRequest(http.MethodGet, "/?"+q.Encode(), nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// call handler
+	err = handler.userPasswordResetValidateHandler(c)
+
+	return
+}
+
+func TestPasswordResetValidateOK(t *testing.T) {
+	err := runPasswordResetValidate(passwordRestDummyID1)
+
+	// assertions
+	assert.NoError(t, err)
+}
+
+func TestPasswordResetValidateNotFound(t *testing.T) {
+	err := runPasswordResetValidate("invalid-token")
+
+	// assertions
+	assert.Error(t, err)
 }

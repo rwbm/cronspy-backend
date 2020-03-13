@@ -46,21 +46,23 @@ type User struct {
 	database        DB
 	logger          *log.Log
 	tokenExpiration int
+	dryRunMode      bool
 }
 
 // creates new reseller service
-func new(database DB, l *log.Log, tokenExpiration int) *User {
+func new(database DB, l *log.Log, tokenExpiration int, dryRunMode bool) *User {
 	return &User{
 		database:        database,
 		logger:          l,
 		tokenExpiration: tokenExpiration,
+		dryRunMode:      dryRunMode,
 	}
 }
 
 // Initialize initializes tax application service
-func Initialize(ds *gorm.DB, dbService DB, l *log.Log, tokenExpiration int) *User {
+func Initialize(ds *gorm.DB, dbService DB, l *log.Log, tokenExpiration int, dryRunMode bool) *User {
 	if dbService == nil {
 		dbService = db.NewUserDB(ds)
 	}
-	return new(dbService, l, tokenExpiration)
+	return new(dbService, l, tokenExpiration, dryRunMode)
 }

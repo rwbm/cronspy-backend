@@ -201,7 +201,11 @@ func (u *User) ResetPassword(email string) (resetID string, err error) {
 		return
 	}
 
-	// TODO: send email
+	if !u.dryRunMode {
+
+		// TODO: send email
+
+	}
 
 	resetID = reset.ID
 
@@ -215,7 +219,6 @@ func (u *User) ValidateResetPassword(resetID string) (err error) {
 	// find password reset token
 	reset, errGetReset := u.database.GetPasswordResetByID(resetID, nil)
 	if errGetReset != nil {
-
 		if errors.Is(errGetReset, exception.ErrRecordNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, exception.GetErrorMap(exception.CodeNotFound, ""))
 		} else {

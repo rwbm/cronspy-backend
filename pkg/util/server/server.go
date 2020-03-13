@@ -19,11 +19,10 @@ type Config struct {
 	Port                string
 	ReadTimeoutSeconds  int
 	WriteTimeoutSeconds int
-	Debug               bool
 }
 
 // New instantates new Echo server
-func New(debug bool) *echo.Echo {
+func New() *echo.Echo {
 
 	e := echo.New()
 

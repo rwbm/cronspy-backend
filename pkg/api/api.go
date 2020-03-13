@@ -31,12 +31,12 @@ func Start(cfg *config.Configuration) (err error) {
 	logger := log.New()
 
 	// http server
-	e := server.New(cfg.Server.Debug)
+	e := server.New()
 
 	// +++++++++++ SERVICES ++++++++++++
 	//
 
-	ut.NewHTTP(user.Initialize(ds, nil, logger, cfg.Server.TokenExpiration), jwtSigningKey, jwtSigningMethod, e)
+	ut.NewHTTP(user.Initialize(ds, nil, logger, cfg.Server.TokenExpiration, cfg.Server.DryRun), jwtSigningKey, jwtSigningMethod, e)
 	jt.NewHTTP(job.Initialize(ds, nil, logger), jwtSigningKey, jwtSigningMethod, e)
 
 	//
@@ -49,7 +49,6 @@ func Start(cfg *config.Configuration) (err error) {
 			Port:                cfg.Server.Port,
 			ReadTimeoutSeconds:  cfg.Server.ReadTimeout,
 			WriteTimeoutSeconds: cfg.Server.WriteTimeout,
-			Debug:               cfg.Server.Debug,
 		},
 		logger)
 

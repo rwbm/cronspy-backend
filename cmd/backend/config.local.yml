@@ -4,7 +4,7 @@ server:
   read_timeout: 10
   write_timeout: 5
   token_expiration: 24
-  debug: no
+  dry_run: false
 
 database:
   driver: mysql

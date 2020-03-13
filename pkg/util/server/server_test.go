@@ -6,7 +6,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	e := server.New(false)
+	e := server.New()
 	if e == nil {
 		t.Errorf("Server should not be nil")
 	}

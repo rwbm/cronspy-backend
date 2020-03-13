@@ -15,8 +15,8 @@ type Configuration struct {
 		Port            string `yaml:"port"`
 		ReadTimeout     int    `yaml:"read_timeout"`
 		WriteTimeout    int    `yaml:"write_timeout"`
-		Debug           bool   `yaml:"debug"`
 		TokenExpiration int    `yaml:"token_expiration"`
+		DryRun          bool   `yaml:"dry_run"`
 	} `yaml:"server"`
 	Database struct {
 		Driver             string `yaml:"driver"`
